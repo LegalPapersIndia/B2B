@@ -3,7 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './Component/Navbar';
 import Home from './Pages/Home';
-import AboutUs from './Pages/About';     // ← import your About page
+import AboutUs from './Pages/About';    
 import Footer from './Component/Footer';
 import './App.css';
 import ContactUs from './Pages/Contact';
@@ -15,10 +15,10 @@ import Blog from './Pages/Blog';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen flex flex-col bg-gray-50 antialiased">
+<div className="min-h-screen flex flex-col bg-gray-50 antialiased overflow-x-hidden">
         <Navbar />
         
-        <main className="flex-1">
+        <main className="flex-1 relative">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<AboutUs />} />
@@ -27,8 +27,6 @@ function App() {
             <Route path="/privacy" element={<PrivacyPolicy />} />  
             <Route path="/help" element={<HelpCenter />} /> 
             <Route path="/blog" element={<Blog />} />
-            {/* Add more pages later if needed */}
-            {/* <Route path="/contact" element={<Contact />} /> */}
             {/* <Route path="*" element={<NotFound />} /> */}
           </Routes>
         </main>

@@ -3,11 +3,10 @@ import React from 'react';
 
 const ActionSidebar = () => {
   return (
-    <aside className="w-72 bg-white border-l border-gray-200 h-screen sticky top-0 overflow-y-auto hidden xl:block">
       <div className="p-6 flex flex-col gap-8">
         {/* Want to Buy Card */}
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow border border-blue-100">
-          <div className="text-center mb-5">
+          <div className="text-center mb-2">
             <h3 className="text-2xl font-bold text-indigo-800 mb-2">Want to Buy</h3>
             <p className="text-gray-600 text-sm">
               Find trusted suppliers and quality products for your business
@@ -42,13 +41,7 @@ const ActionSidebar = () => {
             </button>
           </div>
         </div>
-
-        {/* Optional small footer / note */}
-        <div className="text-center text-xs text-gray-500 mt-4">
-          Join our growing B2B community today
-        </div>
       </div>
-    </aside>
   );
 };
 

@@ -1,7 +1,6 @@
 // src/Component/HeroCarousel.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 const slides = [
   {
@@ -13,7 +12,7 @@ const slides = [
   },
   {
     id: 2,
-    bgImage: "https://images.unsplash.com/photo-1556740714-a8395b3a74dd?auto=format&fit=crop&q=80&w=2070",
+    bgImage: "https://www.seebiz.com/blog/wp-content/webpc-passthru.php?src=https://www.seebiz.com/blog/wp-content/uploads/2024/05/b2b.png&nocache=1",
     title: "Grow Your Business Globally",
     subtitle: "Reach thousands of serious buyers • Showcase products • Expand market reach effortlessly",
     accent: "text-blue-400"
@@ -39,7 +38,11 @@ const HeroCarousel = () => {
 
   useEffect(() => {
     if (isPaused) return;
-    const timer = setInterval(() => paginate(1), 7000);
+
+    const timer = setInterval(() => {
+      paginate(1);
+    }, 3000);
+
     return () => clearInterval(timer);
   }, [isPaused, paginate]);
 
@@ -69,13 +72,13 @@ const HeroCarousel = () => {
     visible: (i) => ({
       opacity: 1,
       y: 0,
-      transition: { delay: 0.4 + i * 0.2, duration: 1, ease: "easeOut" }
+      transition: { delay: 0.2 + i * 0.2, duration: 1, ease: "easeOut" }
     })
   };
 
   return (
-    <section 
-      className="relative w-full h-[550px] sm:h-[650px] lg:h-[80vh] overflow-hidden bg-black"
+    <section
+      className="relative w-full h-[520px] sm:h-[620px] lg:h-[78vh] overflow-hidden bg-black rounded-b-3xl shadow-2xl"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -94,7 +97,7 @@ const HeroCarousel = () => {
           }}
           className="absolute inset-0"
         >
-          {/* Background with Ken Burns (subtle zoom) */}
+          {/* Background with Ken Burns effect */}
           <motion.div
             initial={{ scale: 1.15 }}
             animate={{ scale: 1 }}
@@ -106,10 +109,13 @@ const HeroCarousel = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/30" />
           </motion.div>
 
-          {/* Content */}
+          {/* Content - centered */}
           <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-12 lg:px-20 max-w-7xl mx-auto text-white">
-            <motion.div 
-              custom={0} variants={contentVariants} initial="hidden" animate="visible"
+            <motion.div
+              custom={0}
+              variants={contentVariants}
+              initial="hidden"
+              animate="visible"
               className="inline-block px-5 py-2 mb-6 rounded-full bg-white/10 backdrop-blur-lg border border-white/20"
             >
               <span className="text-emerald-300 text-sm sm:text-base font-semibold tracking-wider uppercase">
@@ -118,7 +124,10 @@ const HeroCarousel = () => {
             </motion.div>
 
             <motion.h1
-              custom={1} variants={contentVariants} initial="hidden" animate="visible"
+              custom={1}
+              variants={contentVariants}
+              initial="hidden"
+              animate="visible"
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight mb-6 drop-shadow-2xl"
             >
               {slides[current].title.split(" ").map((word, i) => (
@@ -129,14 +138,20 @@ const HeroCarousel = () => {
             </motion.h1>
 
             <motion.p
-              custom={2} variants={contentVariants} initial="hidden" animate="visible"
+              custom={2}
+              variants={contentVariants}
+              initial="hidden"
+              animate="visible"
               className="text-lg sm:text-xl md:text-2xl max-w-3xl mb-10 md:mb-12 text-gray-200 font-light leading-relaxed drop-shadow-lg"
             >
               {slides[current].subtitle}
             </motion.p>
 
             <motion.div
-              custom={3} variants={contentVariants} initial="hidden" animate="visible"
+              custom={3}
+              variants={contentVariants}
+              initial="hidden"
+              animate="visible"
               className="flex flex-col sm:flex-row gap-5 sm:gap-8"
             >
               <button className="px-10 py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-lg transition-all duration-300 hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-[1.03] active:scale-95 shadow-lg">
@@ -149,55 +164,6 @@ const HeroCarousel = () => {
           </div>
         </motion.div>
       </AnimatePresence>
-
-      {/* Navigation Arrows - only one pair, visible on md+ */}
-      <div className="hidden md:flex absolute inset-x-0 top-1/2 -translate-y-1/2 justify-between px-6 lg:px-12 z-30 pointer-events-none">
-        <button
-          onClick={() => paginate(-1)}
-          className="pointer-events-auto p-5 rounded-full bg-black/30 backdrop-blur-xl border border-white/10 text-white hover:bg-black/50 hover:scale-110 transition-all duration-300 shadow-2xl group"
-          aria-label="Previous slide"
-        >
-          <FaChevronLeft size={28} className="group-hover:scale-110 transition-transform" />
-        </button>
-
-        <button
-          onClick={() => paginate(1)}
-          className="pointer-events-auto p-5 rounded-full bg-black/30 backdrop-blur-xl border border-white/10 text-white hover:bg-black/50 hover:scale-110 transition-all duration-300 shadow-2xl group"
-          aria-label="Next slide"
-        >
-          <FaChevronRight size={28} className="group-hover:scale-110 transition-transform" />
-        </button>
-      </div>
-
-      {/* Modern Dots (bottom center) */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 z-30">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              setPage([index, index > current ? 1 : -1]);
-              setCurrent(index);
-            }}
-            className={`h-3 rounded-full transition-all duration-500 ${
-              current === index 
-                ? "w-12 bg-emerald-500 shadow-lg shadow-emerald-500/40" 
-                : "w-3 bg-white/40 hover:bg-white hover:w-6"
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
-
-      {/* Bottom Progress Bar */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10 z-40">
-        <motion.div
-          key={current}
-          initial={{ width: "0%" }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 7, ease: "linear" }}
-          className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600"
-        />
-      </div>
     </section>
   );
 };
