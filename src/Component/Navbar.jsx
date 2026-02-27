@@ -1,3 +1,4 @@
+// src/Component/Navbar.jsx
 import React, { useEffect, useState } from "react";
 import {
   FaFacebookF,
@@ -13,6 +14,7 @@ import {
   FaTimes,
   FaUserCircle,
 } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [countries, setCountries] = useState([]);
@@ -30,9 +32,9 @@ const Navbar = () => {
   const [detectingLocation, setDetectingLocation] = useState(true);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [detected, setDetected] = useState({ country: "", state: "", city: "" });
+  const [detected, setDetected] = useState({ country: "", region: "", city: "" });
 
-  // --- Logic remains the same for data fetching ---
+  // 1. Load all countries once
   useEffect(() => {
     setLoadingCountries(true);
     fetch("https://countriesnow.space/api/v0.1/countries")
@@ -48,25 +50,41 @@ const Navbar = () => {
       });
   }, []);
 
+  // 2. Auto-detect location using IP
   useEffect(() => {
-    const detect = async () => {
+    const detectLocation = async () => {
       setDetectingLocation(true);
       try {
         const ipRes = await fetch("https://ipapi.co/json/");
-        const ip = await ipRes.json();
-        setDetected({ country: ip.country_name, state: ip.region, city: ip.city });
-        setSelectedCountry(ip.country_name);
-      } catch (e) {
+        const ipData = await ipRes.json();
+
+        if (ipData.error) throw new Error("IP detection failed");
+
+        const detectedData = {
+          country: ipData.country_name || "India",
+          region: ipData.region || "",
+          city: ipData.city || "",
+        };
+
+        setDetected(detectedData);
+        setSelectedCountry(detectedData.country);
+      } catch (err) {
+        console.warn("IP detection failed:", err);
         setSelectedCountry("India");
       } finally {
         setDetectingLocation(false);
       }
     };
-    if (!loadingCountries && !selectedCountry) detect();
-  }, [loadingCountries]);
 
+    if (!loadingCountries && !selectedCountry) {
+      detectLocation();
+    }
+  }, [loadingCountries, selectedCountry]);
+
+  // 3. Load states when country is selected (auto-select if match found)
   useEffect(() => {
     if (!selectedCountry) return;
+
     setLoadingStates(true);
     fetch("https://countriesnow.space/api/v0.1/countries/states", {
       method: "POST",
@@ -75,37 +93,58 @@ const Navbar = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        const st = (data.data?.states || []).map((item) => item.name).sort();
-        setStates(st);
-        setLoadingStates(false);
-        const match = st.find((name) => name.toLowerCase().includes(detected.state.toLowerCase()));
-        if (match) setSelectedState(match);
-      })
-      .catch(() => setLoadingStates(false));
-  }, [selectedCountry, detected.state]);
+        const stateList = (data.data?.states || []).map((item) => item.name).sort();
+        setStates(stateList);
 
+        // Auto-select matching state from IP detection
+        if (detected.region) {
+          const match = stateList.find(
+            (name) => name.toLowerCase().includes(detected.region.toLowerCase())
+          );
+          if (match) setSelectedState(match);
+        }
+      })
+      .catch(() => {
+        setStates([]);
+      })
+      .finally(() => setLoadingStates(false));
+  }, [selectedCountry, detected.region]);
+
+  // 4. Load cities/districts when state is selected (auto-select if match found)
   useEffect(() => {
-    if (!selectedState || !selectedCountry) return;
+    if (!selectedCountry || !selectedState) return;
+
     setLoadingDistricts(true);
     fetch("https://countriesnow.space/api/v0.1/countries/state/cities", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country: selectedCountry, state: selectedState }),
+      body: JSON.stringify({
+        country: selectedCountry,
+        state: selectedState,
+      }),
     })
       .then((res) => res.json())
       .then((data) => {
-        const dist = (data.data || []).sort();
-        setDistricts(dist);
-        setLoadingDistricts(false);
-        const match = dist.find((d) => d.toLowerCase().includes(detected.city.toLowerCase()));
-        if (match) setSelectedDistrict(match);
+        const cityList = (data.data || []).sort();
+        setDistricts(cityList);
+
+        // Auto-select matching city from IP detection
+        if (detected.city) {
+          const match = cityList.find(
+            (name) => name.toLowerCase().includes(detected.city.toLowerCase())
+          );
+          if (match) setSelectedDistrict(match);
+        }
       })
-      .catch(() => setLoadingDistricts(false));
+      .catch(() => {
+        setDistricts([]);
+      })
+      .finally(() => setLoadingDistricts(false));
   }, [selectedState, selectedCountry, detected.city]);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
-      {/* 1. Top Bar: Adaptive Visibility */}
+      {/* Top Bar */}
       <div className="bg-gray-900 text-gray-300 text-[10px] sm:text-xs">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex justify-between items-center">
           <div className="hidden md:flex items-center gap-4">
@@ -116,7 +155,7 @@ const Navbar = () => {
           </div>
           <div className="flex items-center justify-between w-full md:w-auto gap-4 md:gap-8">
             <span className="flex items-center gap-1.5">
-              <FaPhoneAlt className="text-emerald-400" />+91 7505266931
+              <FaPhoneAlt className="text-emerald-400" /> +91 75052 66931
             </span>
             <span className="flex items-center gap-1.5">
               <FaEnvelope className="text-amber-300" /> support@b2b.in
@@ -125,18 +164,20 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* 2. Main Navigation Area */}
+      {/* Main Navigation */}
       <nav className="max-w-7xl mx-auto px-4 lg:px-8 py-3 lg:py-4">
         <div className="flex flex-col gap-4">
-          
-          {/* Brand & Search & Actions Row */}
+          {/* Logo + Search + Actions */}
           <div className="flex items-center justify-between gap-4">
             {/* Logo */}
-            <div className="text-2xl sm:text-3xl font-black text-indigo-700 tracking-tighter cursor-pointer">
+            <Link
+              to="/"
+              className="text-2xl sm:text-3xl font-black text-indigo-700 tracking-tighter cursor-pointer"
+            >
               B2B<span className="text-gray-900"></span>
-            </div>
+            </Link>
 
-            {/* Desktop Search - Hidden on mobile, appears on Large screens */}
+            {/* Desktop Search */}
             <div className="hidden lg:flex relative flex-1 max-w-lg mx-4">
               <input
                 type="text"
@@ -148,14 +189,13 @@ const Navbar = () => {
               <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
 
-            {/* Right Side Actions */}
+            {/* Actions */}
             <div className="flex items-center gap-2 sm:gap-4">
               <button className="hidden sm:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-medium transition-colors text-sm">
                 <FaUserCircle className="text-lg" />
                 Login
               </button>
-              
-              {/* Mobile Menu Toggle */}
+
               <button
                 className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -165,15 +205,15 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* 3. Filter Bar: Collapsible on Mobile */}
+          {/* Filter Bar / Mobile Menu */}
           <div
-  className={`${
-    isMenuOpen 
-      ? "flex flex-col gap-5 animate-in slide-in-from-top-5 fade-in duration-300" 
-      : "hidden"
-  } lg:flex lg:flex-row lg:items-center lg:gap-4 bg-white/95 lg:bg-transparent backdrop-blur-md lg:backdrop-blur-none p-5 lg:p-0 border-t lg:border-none shadow-xl lg:shadow-none rounded-b-2xl lg:rounded-none`}
->
-            {/* Mobile Only: Search Input inside the toggle menu */}
+            className={`${
+              isMenuOpen
+                ? "flex flex-col gap-5 animate-in slide-in-from-top-5 fade-in duration-300"
+                : "hidden"
+            } lg:flex lg:flex-row lg:items-center lg:gap-4 bg-white/95 lg:bg-transparent backdrop-blur-md lg:backdrop-blur-none p-5 lg:p-0 border-t lg:border-none shadow-xl lg:shadow-none rounded-b-2xl lg:rounded-none`}
+          >
+            {/* Mobile Search */}
             <div className="relative lg:hidden">
               <input
                 type="text"
@@ -185,54 +225,77 @@ const Navbar = () => {
               <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
 
-            {/* Cascading Selects */}
+            {/* Location Selects */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1">
+              {/* Country */}
               <div className="relative group">
+                {detectingLocation && (
+                  <FaSpinner className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-indigo-500" />
+                )}
                 <select
                   value={selectedCountry}
                   onChange={(e) => setSelectedCountry(e.target.value)}
-                  className="w-full pl-3 pr-10 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  disabled={loadingCountries || detectingLocation}
+                  className="w-full pl-3 pr-10 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-60"
                 >
                   <option value="">Select Country</option>
-                  {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {countries.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
                 </select>
                 <FaGlobe className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-indigo-500" />
               </div>
 
-              <div className="relative">
+              {/* State */}
+              <div className="relative group">
+                {loadingStates && (
+                  <FaSpinner className="absolute right-8 top-1/2 -translate-y-1/2 animate-spin text-indigo-500" />
+                )}
                 <select
                   value={selectedState}
                   onChange={(e) => setSelectedState(e.target.value)}
-                  disabled={!selectedCountry}
-                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none disabled:bg-gray-50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  disabled={!selectedCountry || loadingStates}
+                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none disabled:bg-gray-50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-60"
                 >
                   <option value="">Select State</option>
-                  {states.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {states.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
-                {loadingStates && <FaSpinner className="absolute right-8 top-1/2 -translate-y-1/2 animate-spin text-indigo-500" />}
               </div>
 
-              <div className="relative">
+              {/* District / City */}
+              <div className="relative group">
+                {loadingDistricts && (
+                  <FaSpinner className="absolute right-8 top-1/2 -translate-y-1/2 animate-spin text-indigo-500" />
+                )}
                 <select
                   value={selectedDistrict}
                   onChange={(e) => setSelectedDistrict(e.target.value)}
-                  disabled={!selectedState}
-                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none disabled:bg-gray-50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  disabled={!selectedState || loadingDistricts}
+                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none disabled:bg-gray-50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-60"
                 >
                   <option value="">Select City</option>
-                  {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                  {districts.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
                 </select>
-                {loadingDistricts && <FaSpinner className="absolute right-8 top-1/2 -translate-y-1/2 animate-spin text-indigo-500" />}
               </div>
             </div>
 
-            {/* CTA Search Button */}
+            {/* Search Button */}
             <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
               <FaSearch className="hidden lg:inline" />
               <span>Search B2B</span>
             </button>
-            
-            {/* Mobile Only: Login Button inside Menu */}
+
+            {/* Mobile Login */}
             <button className="sm:hidden mt-2 border-2 border-indigo-600 text-indigo-600 py-2.5 rounded-lg font-bold">
               Login / Register
             </button>

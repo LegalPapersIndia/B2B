@@ -42,19 +42,19 @@ const Footer = () => {
           
           {/* Logo & Description */}
           <div>
-<div className="text-5xl font-extrabold bg-gradient-to-r from-indigo-400 via-blue-400 to-emerald-400 bg-clip-text text-transparent tracking-tight mb-5">
-  B2B
-</div>
+            <div className="text-5xl font-extrabold bg-gradient-to-r from-indigo-400 via-blue-400 to-emerald-400 bg-clip-text text-transparent tracking-tight mb-5">
+              B2B
+            </div>
             <p className="text-gray-400 mb-6 text-sm leading-relaxed">
               Connecting global buyers and suppliers with trusted B2B marketplace solutions. Quality products, verified businesses, seamless trade.
             </p>
             
-            <div className="flex items-center gap-4 mt-6">
-              <a href="tel:+6591234567" className="hover:text-white transition-colors">
-                <FaPhoneAlt className="text-lg" />
+            <div className="flex items-center gap-5 mt-6">
+              <a href="tel:+917505266931" className="hover:text-white transition-colors text-xl">
+                <FaPhoneAlt />
               </a>
-              <a href="mailto:support@b2bplatform.in" className="hover:text-white transition-colors">
-                <FaEnvelope className="text-lg" />
+              <a href="mailto:support@b2b.in" className="hover:text-white transition-colors text-xl">
+                <FaEnvelope />
               </a>
             </div>
           </div>
@@ -65,12 +65,12 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               {categories.map((item) => (
                 <li key={item.name}>
-                 <a 
-  href={item.href}
-  className="text-gray-400 hover:text-indigo-300 hover:translate-x-1 transition-all duration-300 inline-block"
->
-  {item.name}
-</a>
+                  <a 
+                    href={item.href}
+                    className="text-gray-400 hover:text-indigo-300 hover:translate-x-1 transition-all duration-300 inline-block"
+                  >
+                    {item.name}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -83,8 +83,8 @@ const Footer = () => {
               {companyLinks.map((item) => (
                 <li key={item.name}>
                   <a 
-                    href={item.href} 
-                    className="text-gray-400 hover:text-indigo-400 transition-colors"
+                    href={item.href}
+                    className="text-gray-400 hover:text-indigo-300 hover:translate-x-1 transition-all duration-300 inline-block"
                   >
                     {item.name}
                   </a>
@@ -100,8 +100,8 @@ const Footer = () => {
               {legalLinks.map((item) => (
                 <li key={item.name}>
                   <a 
-                    href={item.href} 
-                    className="text-gray-400 hover:text-indigo-400 transition-colors"
+                    href={item.href}
+                    className="text-gray-400 hover:text-indigo-300 hover:translate-x-1 transition-all duration-300 inline-block"
                   >
                     {item.name}
                   </a>
@@ -110,17 +110,37 @@ const Footer = () => {
             </ul>
 
             <h3 className="text-white font-semibold text-lg mb-4">Follow Us</h3>
-            <div className="flex items-center gap-5">
-              <a href="https://facebook.com/yourpage" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-xl">
+            <div className="flex items-center gap-6">
+              <a 
+                href="https://facebook.com/b2bportal" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-white transition-colors text-2xl hover:scale-110"
+              >
                 <FaFacebookF />
               </a>
-              <a href="https://twitter.com/yourhandle" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-xl">
+              <a 
+                href="https://twitter.com/b2bportal" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-white transition-colors text-2xl hover:scale-110"
+              >
                 <FaTwitter />
               </a>
-              <a href="https://instagram.com/yourhandle" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-xl">
+              <a 
+                href="https://instagram.com/b2bportal" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-white transition-colors text-2xl hover:scale-110"
+              >
                 <FaInstagram />
               </a>
-              <a href="https://linkedin.com/company/yourcompany" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-xl">
+              <a 
+                href="https://linkedin.com/company/b2bportal" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-gray-400 hover:text-white transition-colors text-2xl hover:scale-110"
+              >
                 <FaLinkedinIn />
               </a>
             </div>
@@ -131,7 +151,7 @@ const Footer = () => {
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
           <p>© {new Date().getFullYear()} B2B Platform. All rights reserved.</p>
           <p className="mt-2">
-            Made with ♥ for global trade • Houston, Texas • support@b2bplatform.in
+            Made with ♥ for global trade • Noida, Uttar Pradesh • support@b2b.in
           </p>
         </div>
       </div>
