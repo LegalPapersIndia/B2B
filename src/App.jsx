@@ -10,6 +10,7 @@ import ContactUs from './Pages/Contact';
 import PrivacyPolicy from './Pages/Privacy';
 import RefundPolicy from './Pages/Refund';
 import HelpCenter from './Pages/HelpCenter';
+import Blog from './Pages/Blog';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             <Route path="/refund" element={<RefundPolicy />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />  
             <Route path="/help" element={<HelpCenter />} /> 
+            <Route path="/blog" element={<Blog />} />
             {/* Add more pages later if needed */}
             {/* <Route path="/contact" element={<Contact />} /> */}
             {/* <Route path="*" element={<NotFound />} /> */}
