@@ -19,6 +19,7 @@ import SellerDashboard from './Pages/SellerDashboard';
 
 import './App.css';
 import CategoryPage from './Pages/Categorypage';
+import SubcategoryPage from './Pages/SubcategoryPage';
 import ScrollToTop from './Component/ScrollToTop';
 import CompleteProfile from './Pages/CompleteProfile';
 
@@ -54,6 +55,7 @@ function AppContent() {
           <Route path="/help" element={<HelpCenter />} /> 
           <Route path="/blog" element={<Blog />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
+          <Route path="/category/:slug/subcategory/:subslug" element={<SubcategoryPage />} />
           
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/complete-profile" element={<CompleteProfile />} />

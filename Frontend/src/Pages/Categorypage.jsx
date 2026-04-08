@@ -1,10 +1,9 @@
-// src/Pages/CategoryPage.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ShoppingCart, Star, CheckCircle2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import axios from "axios";
-import { useUser, useAuth } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
@@ -14,12 +13,10 @@ export default function CategoryPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { isSignedIn, user } = useUser();
-  const { getToken } = useAuth();
 
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sendingEnquiry, setSendingEnquiry] = useState(null);
 
   useEffect(() => {
     fetchCategoryData();
@@ -28,13 +25,11 @@ export default function CategoryPage() {
   const fetchCategoryData = async () => {
     setLoading(true);
     try {
-      // Public Route se saari categories le rahe hain
       const catRes = await axios.get(`${API_BASE_URL}/categories`);
-      
-      if (!catRes.data.success) throw new Error();
+      if (!catRes.data.success) throw new Error("Categories fetch failed");
 
       const allCats = catRes.data.categories || [];
-      const found = allCats.find(c => c.name === slug);
+      const found = allCats.find((c) => c.name === slug);
 
       if (!found) {
         setCategory(null);
@@ -46,38 +41,39 @@ export default function CategoryPage() {
         slug: found.name,
         name: found.name.charAt(0).toUpperCase() + found.name.slice(1),
         desc: found.description || "High quality products available in bulk",
-        image: found.image || "https://picsum.photos/id/20/600/400"
+        image: found.image || "https://picsum.photos/id/20/600/400",
       });
 
       const prodRes = await axios.get(`${API_BASE_URL}/products?category=${slug}`);
-      setProducts(prodRes.data || []);
-
-    } catch (err) {
-      console.error(err);
+      setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
+    } catch {
       setCategory(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const sendEnquiry = async (product) => {
-    if (!isSignedIn) return alert("Please login first");
-    if (user?.unsafeMetadata?.role !== "buyer") return alert("Only Buyers can send enquiries");
-
-    setSendingEnquiry(product._id);
-    try {
-      const token = await getToken();
-      await axios.post(`${API_BASE_URL}/enquiries`, {
-        productId: product._id,
-        message: `Interested in ${product.name}. Please share best price and details.`,
-      }, { headers: { Authorization: `Bearer ${token}` } });
-
-      alert(`Enquiry sent for ${product.name}!`);
-    } catch (err) {
-      alert("Failed to send enquiry");
-    } finally {
-      setSendingEnquiry(null);
+  const handleExploreSubcategory = (product) => {
+    if (!product?.subcategory) {
+      alert("Subcategory not available for this product");
+      return;
     }
+
+    if (!isSignedIn) {
+      navigate("/login");
+      return;
+    }
+
+    const isProfileComplete =
+      user?.unsafeMetadata?.profileCompleted === true ||
+      (user?.unsafeMetadata?.businessName && user?.unsafeMetadata?.mobile && user?.unsafeMetadata?.address);
+
+    if (!isProfileComplete) {
+      navigate("/complete-profile");
+      return;
+    }
+
+    navigate(`/category/${encodeURIComponent(product.category)}/subcategory/${encodeURIComponent(product.subcategory)}`);
   };
 
   if (loading) {
@@ -104,7 +100,6 @@ export default function CategoryPage() {
           <ArrowLeft /> Back
         </button>
 
-        {/* Hero */}
         <div className="relative h-[320px] rounded-3xl overflow-hidden mb-10">
           <img src={category.image} alt={category.name} className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -114,21 +109,21 @@ export default function CategoryPage() {
           </div>
         </div>
 
-        {/* Products */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((p) => (
             <motion.div key={p._id} className="bg-white rounded-2xl overflow-hidden border hover:shadow-xl transition">
-              <img src={p.images?.[0]} alt={p.name} className="w-full h-52 object-cover" />
+              <img src={p.images?.[0] || "https://picsum.photos/id/20/600/400"} alt={p.name} className="w-full h-52 object-cover" />
               <div className="p-5">
                 <h3 className="font-semibold text-lg line-clamp-2">{p.name}</h3>
-                <p className="text-emerald-600 font-bold text-xl mt-1">₹{p.price?.toLocaleString("en-IN")}</p>
+                <p className="text-emerald-600 font-bold text-xl mt-1">Rs {p.price?.toLocaleString("en-IN")}</p>
                 <p className="text-sm text-gray-500">MOQ: {p.moq}</p>
+                <p className="text-xs text-slate-500 mt-1">Subcategory: {p.subcategory || "N/A"}</p>
 
                 <button
-                  onClick={() => sendEnquiry(p)}
+                  onClick={() => handleExploreSubcategory(p)}
                   className="mt-4 w-full bg-emerald-600 text-white py-3 rounded-xl hover:bg-emerald-700"
                 >
-                  Enquire Now
+                  Explore Subcategory
                 </button>
               </div>
             </motion.div>

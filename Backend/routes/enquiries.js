@@ -6,87 +6,96 @@ const Seller = require('../models/Seller');
 const mongoose = require('mongoose');
 
 const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
-const { clerkClient } = require('@clerk/clerk-sdk-node');
 
-// ================= AUTH =================
 const requireAuth = ClerkExpressRequireAuth({
-  onError: (err, req, res) =>
-    res.status(401).json({ error: 'Unauthorized' })
+  onError: (err, req, res) => res.status(401).json({ error: 'Unauthorized' }),
 });
 
-// ================= CREATE ENQUIRY =================
-router.post('/', requireAuth, async (req, res) => {
+function hasCompletedProfile(user) {
+  return !!(
+    user &&
+    user.name &&
+    user.email &&
+    user.phone &&
+    user.company &&
+    user.address
+  );
+}
+
+async function requireCompletedProfile(req, res, next) {
+  try {
+    const profile = await Seller.findOne({ clerkId: req.auth.userId });
+
+    if (!profile || !hasCompletedProfile(profile)) {
+      return res.status(403).json({
+        error: 'Profile incomplete',
+        message: 'Please complete profile first to send enquiry',
+      });
+    }
+
+    req.currentUserProfile = profile;
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
+router.post('/', requireAuth, requireCompletedProfile, async (req, res) => {
   try {
     const { productId, message } = req.body;
     const buyerClerkId = req.auth.userId;
+    const buyerProfile = req.currentUserProfile;
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ error: "Invalid productId" });
+      return res.status(400).json({ error: 'Invalid productId' });
     }
 
-    // ================= PRODUCT =================
     const product = await Product.findById(productId);
     if (!product) {
-      return res.status(404).json({ error: "Product not found" });
+      return res.status(404).json({ error: 'Product not found' });
     }
 
-    // ================= SELLER =================
+    if (product.clerkId === buyerClerkId) {
+      return res.status(400).json({ error: 'You cannot enquire on your own product' });
+    }
+
     const seller = await Seller.findOne({ clerkId: product.clerkId });
-
-    if (!seller) {
-      return res.status(404).json({ error: "Seller not found" });
+    if (!seller || !hasCompletedProfile(seller)) {
+      return res.status(404).json({ error: 'Seller profile not available' });
     }
 
-    // ================= BUYER (CLERK) =================
-    const clerkUser = await clerkClient.users.getUser(buyerClerkId);
-
-    const buyerEmail =
-      clerkUser.emailAddresses?.[0]?.emailAddress ||
-      clerkUser.primaryEmailAddress?.emailAddress;
-
-    const buyerName =
-      clerkUser.fullName ||
-      `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
-      "Buyer";
-
-    const buyerCompany = clerkUser.unsafeMetadata?.company || '';
-
-    if (!buyerEmail) {
-      return res.status(400).json({ error: "Email not found" });
-    }
-
-    // ================= SAVE =================
     const enquiry = new Enquiry({
       productId,
       buyerClerkId,
-
-      buyerName,
-      buyerEmail,
-      buyerCompany,
-
-      sellerName: seller.name || "Seller",
-      sellerCompany: seller.company || "",
-
-      message: message || "Interested in this product"
+      buyerName: buyerProfile.name,
+      buyerEmail: buyerProfile.email,
+      buyerPhone: buyerProfile.phone,
+      buyerCompany: buyerProfile.company,
+      buyerWebsite: buyerProfile.website || '',
+      sellerName: seller.name,
+      sellerEmail: seller.email,
+      sellerPhone: seller.phone,
+      sellerCompany: seller.company,
+      sellerWebsite: seller.website || '',
+      message: message || 'Interested in this product',
     });
 
     await enquiry.save();
 
     res.status(201).json({
       success: true,
-      message: "Enquiry sent successfully"
+      message: 'Enquiry sent successfully',
+      enquiry,
     });
-
   } catch (err) {
-    console.error("ENQUIRY ERROR:", err);
+    console.error('ENQUIRY ERROR:', err);
     res.status(500).json({
-      error: "Failed to send enquiry",
-      details: err.message
+      error: 'Failed to send enquiry',
+      details: err.message,
     });
   }
 });
 
-// ================= SELLER SIDE =================
 router.get('/my', requireAuth, async (req, res) => {
   try {
     const sellerClerkId = req.auth.userId;
@@ -95,20 +104,18 @@ router.get('/my', requireAuth, async (req, res) => {
       .populate({
         path: 'productId',
         select: 'name price images category clerkId',
-        match: { clerkId: sellerClerkId }
+        match: { clerkId: sellerClerkId },
       })
       .sort({ createdAt: -1 });
 
-    const filtered = enquiries.filter(e => e.productId !== null);
+    const filtered = enquiries.filter((e) => e.productId !== null);
 
     res.json(filtered);
-
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch enquiries" });
+    res.status(500).json({ error: 'Failed to fetch enquiries' });
   }
 });
 
-// ================= ADMIN (ALL ENQUIRIES) =================
 router.get('/all', async (req, res) => {
   try {
     const enquiries = await Enquiry.find()
@@ -117,7 +124,7 @@ router.get('/all', async (req, res) => {
 
     res.json({ enquiries });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch all enquiries" });
+    res.status(500).json({ error: 'Failed to fetch all enquiries' });
   }
 });
 

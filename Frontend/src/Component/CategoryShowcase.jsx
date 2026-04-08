@@ -1,16 +1,14 @@
-// src/Components/CategoryShowcase.jsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { ArrowRight, TrendingUp } from "lucide-react";
-import { useUser, useAuth } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
   : "http://localhost:5000/api";
 
-// Default Categories
 export const categoriesData = [
   { slug: "medicine", name: "Medicine & Pharmaceuticals", desc: "APIs, generics and medical devices", image: "https://www.biopharlifesciences.co.in/public/Blogs/1735552692jpg" },
   { slug: "cosmetics", name: "Cosmetics & Beauty", desc: "Skincare, makeup & perfumes", image: "https://cdn.britannica.com/35/222035-050-C68AD682/makeup-cosmetics.jpg" },
@@ -34,15 +32,12 @@ export const categoriesData = [
 
 export default function CategoryShowcase() {
   const { isSignedIn, user } = useUser();
-  const { getToken } = useAuth();
   const navigate = useNavigate();
 
   const [allCategories, setAllCategories] = useState(categoriesData);
   const [categoryProducts, setCategoryProducts] = useState({});
-  const [sendingEnquiry, setSendingEnquiry] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch Dynamic Categories from Admin
   useEffect(() => {
     fetchAllCategories();
   }, []);
@@ -51,23 +46,22 @@ export default function CategoryShowcase() {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`);
       if (res.data.success) {
-        const adminAdded = res.data.categories
-          .filter(cat => !categoriesData.some(def => def.slug === cat.name))
-          .map(cat => ({
+        const adminAdded = (res.data.categories || [])
+          .filter((cat) => !categoriesData.some((def) => def.slug === cat.name))
+          .map((cat) => ({
             slug: cat.name,
             name: cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
             desc: cat.description || "Premium quality products",
-            image: cat.image || "https://picsum.photos/id/20/600/400"
+            image: cat.image || "https://picsum.photos/id/20/600/400",
           }));
 
         setAllCategories([...categoriesData, ...adminAdded]);
       }
-    } catch (err) {
-      console.warn("Using default categories only");
+    } catch {
+      setAllCategories(categoriesData);
     }
   };
 
-  // Fetch Products for all categories
   useEffect(() => {
     fetchAllCategoryProducts();
   }, [allCategories]);
@@ -77,7 +71,7 @@ export default function CategoryShowcase() {
     try {
       const promises = allCategories.map(async (category) => {
         try {
-          const res = await axios.get(`${API_BASE_URL}/products?category=${category.slug}`);
+          const res = await axios.get(`${API_BASE_URL}/products?category=${category.slug}&homePreview=true`);
           return { slug: category.slug, products: res.data || [] };
         } catch {
           return { slug: category.slug, products: [] };
@@ -86,59 +80,38 @@ export default function CategoryShowcase() {
 
       const results = await Promise.all(promises);
       const productsMap = {};
-      results.forEach(({ slug, products }) => productsMap[slug] = products);
+      results.forEach(({ slug, products }) => {
+        productsMap[slug] = products;
+      });
       setCategoryProducts(productsMap);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setCategoryProducts({});
     } finally {
       setLoading(false);
     }
   };
 
-  // ================= ENQUIRY WITH PROFILE CHECK =================
-  const sendEnquiry = async (product) => {
-    if (!isSignedIn) {
-      alert("Please login first to send enquiry");
-      navigate('/login');
+  const handleExploreSubcategory = (product) => {
+    if (!product?.subcategory) {
+      alert("Subcategory not available for this product");
       return;
     }
 
-    // Check if profile is complete
-    const isProfileComplete = user?.unsafeMetadata?.profileCompleted === true ||
-                             (user?.company && user?.phone && user?.address);
+    if (!isSignedIn) {
+      navigate("/login");
+      return;
+    }
+
+    const isProfileComplete =
+      user?.unsafeMetadata?.profileCompleted === true ||
+      (user?.unsafeMetadata?.businessName && user?.unsafeMetadata?.mobile && user?.unsafeMetadata?.address);
 
     if (!isProfileComplete) {
-      const confirmComplete = window.confirm(
-        "⚠️ Aapka business profile complete nahi hai.\n\n" +
-        "Enquiry bhejne ke liye pehle apna Business Name, Mobile Number aur Address complete kar lijiye.\n\n" +
-        "Abhi Complete Profile page par jaaye?"
-      );
-
-      if (confirmComplete) {
-        navigate('/complete-profile');
-      }
+      navigate("/complete-profile");
       return;
     }
 
-    // Profile complete hai → Enquiry bhejo
-    setSendingEnquiry(product._id);
-
-    try {
-      const token = await getToken();
-      await axios.post(`${API_BASE_URL}/enquiries`, {
-        productId: product._id,
-        message: `I am interested in ${product.name}. Please share more details and best price.`,
-      }, { 
-        headers: { Authorization: `Bearer ${token}` } 
-      });
-
-      alert(`✅ Enquiry sent successfully for ${product.name}!`);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to send enquiry. Please try again.");
-    } finally {
-      setSendingEnquiry(null);
-    }
+    navigate(`/category/${encodeURIComponent(product.category)}/subcategory/${encodeURIComponent(product.subcategory)}`);
   };
 
   const handleViewAll = (slug) => navigate(`/category/${slug}`);
@@ -158,19 +131,18 @@ export default function CategoryShowcase() {
           const products = categoryProducts[category.slug] || [];
 
           return (
-            <motion.section 
-              key={category.slug} 
-              initial={{ opacity: 0, y: 20 }} 
-              whileInView={{ opacity: 1, y: 0 }} 
-              viewport={{ once: true }} 
+            <motion.section
+              key={category.slug}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
               className="scroll-mt-16"
             >
-              {/* Category Hero */}
               <div className="relative h-[260px] md:h-[300px] rounded-2xl overflow-hidden shadow-md mb-8 group">
-                <img 
-                  src={category.image} 
-                  alt={category.name} 
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/60 to-transparent" />
                 <div className="absolute inset-0 p-6 md:p-10 flex flex-col justify-end">
@@ -180,8 +152,8 @@ export default function CategoryShowcase() {
                     </span>
                     <h3 className="text-3xl font-bold text-white mb-2">{category.name}</h3>
                     <p className="text-slate-200 text-sm md:text-base line-clamp-2 mb-4">{category.desc}</p>
-                    <button 
-                      onClick={() => handleViewAll(category.slug)} 
+                    <button
+                      onClick={() => handleViewAll(category.slug)}
                       className="flex items-center gap-2 bg-white text-slate-900 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-600 hover:text-white transition-all"
                     >
                       Explore Category <ArrowRight className="w-4 h-4" />
@@ -190,40 +162,39 @@ export default function CategoryShowcase() {
                 </div>
               </div>
 
-              {/* Products Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {products.slice(0, 5).map((product, i) => (
-                  <motion.div 
-                    key={product._id} 
-                    initial={{ opacity: 0, y: 15 }} 
-                    whileInView={{ opacity: 1, y: 0 }} 
-                    transition={{ delay: i * 0.04 }} 
-                    className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all"
-                  >
-                    <div className="relative aspect-square overflow-hidden bg-slate-100">
-                      <img 
-                        src={product.images?.[0] || "https://picsum.photos/id/20/600/400"} 
-                        alt={product.name} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform" 
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h5 className="font-semibold line-clamp-2 mb-1">{product.name}</h5>
-                      <p className="text-xs text-slate-500 mb-2">
-                        by {product.sellerCompany || "Unknown Supplier"}
-                      </p>
-                      <p className="text-lg font-bold">₹{product.price?.toLocaleString("en-IN")}</p>
-                      
-                      <button 
-                        onClick={() => sendEnquiry(product)} 
-                        disabled={sendingEnquiry === product._id}
-                        className="mt-3 w-full py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:bg-gray-400 transition-all"
+                {loading
+                  ? []
+                  : products.slice(0, 5).map((product, i) => (
+                      <motion.div
+                        key={product._id}
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all"
                       >
-                        {sendingEnquiry === product._id ? "Sending..." : "Enquire Now"}
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                        <div className="relative aspect-square overflow-hidden bg-slate-100">
+                          <img
+                            src={product.images?.[0] || "https://picsum.photos/id/20/600/400"}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                          />
+                        </div>
+                        <div className="p-4">
+                          <h5 className="font-semibold line-clamp-2 mb-1">{product.name}</h5>
+                          <p className="text-xs text-slate-500 mb-2">by {product.sellerCompany || "Unknown Supplier"}</p>
+                          <p className="text-lg font-bold">Rs {product.price?.toLocaleString("en-IN")}</p>
+                          <p className="text-xs text-slate-500 mt-1">Subcategory: {product.subcategory || "N/A"}</p>
+
+                          <button
+                            onClick={() => handleExploreSubcategory(product)}
+                            className="mt-3 w-full py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all"
+                          >
+                            Explore Subcategory
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
               </div>
             </motion.section>
           );
