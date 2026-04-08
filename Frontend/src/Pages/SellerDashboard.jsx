@@ -643,6 +643,19 @@ export default function SellerDashboard() {
                       </div>
                     )}
 
+                    {enq.enquiryType === "contact_click" && (
+                      <div className="mt-4 text-sm bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl">
+                        Buyer clicked your{" "}
+                        <span className="font-semibold capitalize">{enq.contactMethod || "contact detail"}</span>
+                        {enq.contactValue ? (
+                          <>
+                            {" "}({enq.contactValue})
+                          </>
+                        ) : null}
+                        {" "}from explore page.
+                      </div>
+                    )}
+
                     <p className="text-xs text-gray-400 mt-6">
                       Received: {new Date(enq.createdAt).toLocaleString('en-IN')}
                     </p>

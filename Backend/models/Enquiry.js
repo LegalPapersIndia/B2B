@@ -72,6 +72,22 @@ const enquirySchema = new mongoose.Schema({
     trim: true,
     default: 'I am interested in this product. Please share more details.',
   },
+  enquiryType: {
+    type: String,
+    enum: ['message', 'contact_click'],
+    default: 'message',
+    index: true,
+  },
+  contactMethod: {
+    type: String,
+    enum: ['', 'phone', 'email', 'website'],
+    default: '',
+  },
+  contactValue: {
+    type: String,
+    trim: true,
+    default: '',
+  },
 
   status: {
     type: String,

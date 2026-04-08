@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useUser } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 
@@ -18,6 +18,7 @@ function SubcategoryPage() {
   const navigate = useNavigate();
   const { slug, subslug } = useParams();
   const { isLoaded, isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
@@ -61,6 +62,27 @@ function SubcategoryPage() {
   const revealContact = (productId, type, value) => {
     if (!value) return;
     setRevealedContact({ productId, type, value });
+  };
+
+  const recordContactClick = async (productId, type) => {
+    try {
+      const token = await getToken();
+      await axios.post(
+        `${API_BASE_URL}/enquiries/contact-click`,
+        {
+          productId,
+          contactMethod: type,
+          buyerName: user?.fullName || user?.firstName || "",
+          buyerEmail: user?.primaryEmailAddress?.emailAddress || "",
+          buyerPhone: user?.primaryPhoneNumber?.phoneNumber || user?.unsafeMetadata?.mobile || "",
+          buyerCompany: user?.unsafeMetadata?.businessName || "",
+          buyerWebsite: user?.unsafeMetadata?.website || "",
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (err) {
+      console.error("Contact click tracking failed:", err);
+    }
   };
 
   const buildContactAction = (type, value) => {
@@ -119,21 +141,30 @@ function SubcategoryPage() {
                     <div className="flex flex-wrap gap-2 mt-4">
                       <button
                         type="button"
-                        onClick={() => revealContact(p._id, "phone", seller.phone)}
+                        onClick={() => {
+                          revealContact(p._id, "phone", seller.phone);
+                          if (seller.phone) recordContactClick(p._id, "phone");
+                        }}
                         className={`px-3 py-2 rounded-lg text-white text-sm ${seller.phone ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 cursor-not-allowed"}`}
                       >
                         Phone
                       </button>
                       <button
                         type="button"
-                        onClick={() => revealContact(p._id, "email", seller.email)}
+                        onClick={() => {
+                          revealContact(p._id, "email", seller.email);
+                          if (seller.email) recordContactClick(p._id, "email");
+                        }}
                         className={`px-3 py-2 rounded-lg text-white text-sm ${seller.email ? "bg-emerald-600 hover:bg-emerald-700" : "bg-gray-400 cursor-not-allowed"}`}
                       >
                         Email
                       </button>
                       <button
                         type="button"
-                        onClick={() => revealContact(p._id, "website", seller.website)}
+                        onClick={() => {
+                          revealContact(p._id, "website", seller.website);
+                          if (seller.website) recordContactClick(p._id, "website");
+                        }}
                         className={`px-3 py-2 rounded-lg text-white text-sm ${seller.website ? "bg-slate-800 hover:bg-black" : "bg-gray-400 cursor-not-allowed"}`}
                       >
                         Website

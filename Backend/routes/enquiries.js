@@ -78,6 +78,7 @@ router.post('/', requireAuth, requireCompletedProfile, async (req, res) => {
       sellerCompany: seller.company,
       sellerWebsite: seller.website || '',
       message: message || 'Interested in this product',
+      enquiryType: 'message',
     });
 
     await enquiry.save();
@@ -91,6 +92,105 @@ router.post('/', requireAuth, requireCompletedProfile, async (req, res) => {
     console.error('ENQUIRY ERROR:', err);
     res.status(500).json({
       error: 'Failed to send enquiry',
+      details: err.message,
+    });
+  }
+});
+
+router.post('/contact-click', requireAuth, async (req, res) => {
+  try {
+    const {
+      productId,
+      contactMethod,
+      buyerName: buyerNameInput,
+      buyerEmail: buyerEmailInput,
+      buyerPhone: buyerPhoneInput,
+      buyerCompany: buyerCompanyInput,
+      buyerWebsite: buyerWebsiteInput,
+    } = req.body;
+    const buyerClerkId = req.auth.userId;
+    const normalizedMethod = String(contactMethod || '').trim().toLowerCase();
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ error: 'Invalid productId' });
+    }
+
+    if (!['phone', 'email', 'website'].includes(normalizedMethod)) {
+      return res.status(400).json({ error: 'Invalid contact method' });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    if (product.clerkId === buyerClerkId) {
+      return res.status(400).json({ error: 'You cannot enquire on your own product' });
+    }
+
+    const [seller, buyerProfile] = await Promise.all([
+      Seller.findOne({ clerkId: product.clerkId }),
+      Seller.findOne({ clerkId: buyerClerkId }),
+    ]);
+
+    if (!seller) {
+      return res.status(404).json({ error: 'Seller profile not available' });
+    }
+
+    const buyerName = String(buyerProfile?.name || buyerNameInput || '').trim();
+    const buyerEmail = String(buyerProfile?.email || buyerEmailInput || '').trim().toLowerCase();
+    const buyerPhone = String(buyerProfile?.phone || buyerPhoneInput || '').trim();
+    const buyerCompany = String(buyerProfile?.company || buyerCompanyInput || '').trim();
+    const buyerWebsite = String(buyerProfile?.website || buyerWebsiteInput || '').trim();
+
+    if (!buyerName || !buyerEmail) {
+      return res.status(400).json({
+        error: 'Buyer profile incomplete',
+        message: 'Buyer name and email are required to track contact click enquiry',
+      });
+    }
+
+    const contactValue =
+      normalizedMethod === 'phone'
+        ? String(seller.phone || '').trim()
+        : normalizedMethod === 'email'
+        ? String(seller.email || '').trim()
+        : String(seller.website || '').trim();
+
+    if (!contactValue) {
+      return res.status(400).json({ error: `Seller ${normalizedMethod} not available` });
+    }
+
+    const enquiry = new Enquiry({
+      productId,
+      buyerClerkId,
+      buyerName,
+      buyerEmail,
+      buyerPhone,
+      buyerCompany,
+      buyerWebsite,
+      sellerName: seller.name,
+      sellerEmail: seller.email,
+      sellerPhone: seller.phone,
+      sellerCompany: seller.company,
+      sellerWebsite: seller.website || '',
+      enquiryType: 'contact_click',
+      contactMethod: normalizedMethod,
+      contactValue,
+      message: `Buyer clicked seller ${normalizedMethod} from explore page`,
+    });
+
+    await enquiry.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Contact click enquiry recorded',
+      enquiry,
+    });
+  } catch (err) {
+    console.error('CONTACT CLICK ENQUIRY ERROR:', err);
+    res.status(500).json({
+      error: 'Failed to record contact click enquiry',
       details: err.message,
     });
   }
