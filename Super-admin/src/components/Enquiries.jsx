@@ -33,8 +33,10 @@ function Enquiries() {
             <tr>
               <th className="text-left p-6">Customer Name</th>
               <th className="text-left p-6">Email</th>
+              <th className="text-left p-6">Phone</th>
               <th className="text-left p-6">Company</th>
               <th className="text-left p-6">Product</th>
+              <th className="text-left p-6">Status</th>
               <th className="text-left p-6">Message</th>
               <th className="text-left p-6">Date</th>
             </tr>
@@ -44,8 +46,14 @@ function Enquiries() {
               <tr key={enq._id} className="border-t hover:bg-gray-50">
                 <td className="p-6 font-medium">{enq.buyerName}</td>
                 <td className="p-6">{enq.buyerEmail}</td>
+                <td className="p-6">{enq.buyerPhone || '-'}</td>
                 <td className="p-6">{enq.buyerCompany || '-'}</td>
                 <td className="p-6">{enq.productId?.name || 'N/A'}</td>
+                <td className="p-6">
+                  <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm font-medium uppercase">
+                    {enq.status || 'pending'}
+                  </span>
+                </td>
                 <td className="p-6 text-gray-600">{enq.message}</td>
                 <td className="p-6 text-gray-500">
                   {new Date(enq.createdAt).toLocaleDateString()}

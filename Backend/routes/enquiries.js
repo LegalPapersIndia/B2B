@@ -216,6 +216,48 @@ router.get('/my', requireAuth, async (req, res) => {
   }
 });
 
+router.patch('/my/:id/status', requireAuth, async (req, res) => {
+  try {
+    const sellerClerkId = req.auth.userId;
+    const nextStatus = String(req.body.status || '').trim().toLowerCase();
+    const allowedStatuses = ['pending', 'contacted', 'rejected', 'closed'];
+
+    if (!allowedStatuses.includes(nextStatus)) {
+      return res.status(400).json({ error: 'Invalid enquiry status' });
+    }
+
+    const enquiry = await Enquiry.findById(req.params.id).populate({
+      path: 'productId',
+      select: 'clerkId',
+    });
+
+    if (!enquiry || !enquiry.productId) {
+      return res.status(404).json({ error: 'Enquiry not found' });
+    }
+
+    if (String(enquiry.productId.clerkId || '') !== sellerClerkId) {
+      return res.status(403).json({ error: 'You are not allowed to update this enquiry' });
+    }
+
+    enquiry.status = nextStatus;
+    enquiry.sellerStatusUpdatedAt = new Date();
+    if (['contacted', 'closed'].includes(nextStatus)) {
+      enquiry.repliedAt = new Date();
+    }
+
+    await enquiry.save();
+
+    res.json({
+      success: true,
+      message: 'Enquiry status updated successfully',
+      enquiry,
+    });
+  } catch (err) {
+    console.error('SELLER ENQUIRY STATUS UPDATE ERROR:', err);
+    res.status(500).json({ error: 'Failed to update enquiry status' });
+  }
+});
+
 router.get('/all', async (req, res) => {
   try {
     const enquiries = await Enquiry.find()

@@ -91,11 +91,12 @@ const enquirySchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['pending', 'replied', 'closed'],
+    enum: ['pending', 'contacted', 'rejected', 'replied', 'closed'],
     default: 'pending',
   },
 
   repliedAt: Date,
+  sellerStatusUpdatedAt: Date,
 }, {
   timestamps: true,
 });

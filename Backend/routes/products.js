@@ -68,8 +68,11 @@ router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req,
   try {
     const { name, category, subcategory, otherCategory, otherSubcategory, price, moq, description } = req.body;
 
-    if (!name || !category || !price) {
-      return res.status(400).json({ error: 'Name, Category and Price are required' });
+    const normalizedCategory = String(category || '').trim().toLowerCase();
+    const normalizedSubcategory = String(subcategory || '').trim().toLowerCase();
+
+    if (!name || !category || !price || !normalizedSubcategory) {
+      return res.status(400).json({ error: 'Name, Category, Subcategory and Price are required' });
     }
 
     const clerkId = req.auth.userId;
@@ -85,14 +88,21 @@ router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req,
       if (imageUrl) imageUrls.push(imageUrl);
     }
 
-    const normalizedCategory = String(category || '').trim().toLowerCase();
-    const normalizedSubcategory = String(subcategory || '').trim().toLowerCase();
     const normalizedOtherCategory = String(otherCategory || '').trim().toLowerCase();
     const normalizedOtherSubcategory = String(otherSubcategory || '').trim().toLowerCase();
     const requestedCategoryImage =
       requestCategoryImageFile ? await uploadBufferToCloudinary(requestCategoryImageFile.buffer) : '';
     const requestedSubcategoryImage =
       requestSubcategoryImageFile ? await uploadBufferToCloudinary(requestSubcategoryImageFile.buffer) : '';
+
+    if (normalizedCategory === 'other') {
+      if (!requestedCategoryImage) {
+        return res.status(400).json({ error: 'Category image is required for a new category request' });
+      }
+      if (!requestedSubcategoryImage) {
+        return res.status(400).json({ error: 'Subcategory image is required for a new category request' });
+      }
+    }
 
     const product = new Product({
       clerkId,
@@ -131,6 +141,13 @@ router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req,
       return res.status(400).json({
         error: 'Validation Error',
         details: Object.values(err.errors).map((e) => e.message),
+      });
+    }
+
+    if (err.message) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: err.message,
       });
     }
 
@@ -219,19 +236,28 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
     if (moq !== undefined) updatePayload.moq = Number(moq);
     if (description !== undefined) updatePayload.description = String(description || '').trim();
 
-    if (category !== undefined) {
+    const hasCategory = category !== undefined;
+    const hasSubcategory = subcategory !== undefined;
+
+    if (hasCategory || hasSubcategory) {
       const normalizedCategory = String(category || '').trim().toLowerCase();
       const normalizedSubcategory = String(subcategory || '').trim().toLowerCase();
       const normalizedOtherCategory = String(otherCategory || '').trim().toLowerCase();
       const normalizedOtherSubcategory = String(otherSubcategory || '').trim().toLowerCase();
+      const finalCategory = hasCategory ? normalizedCategory : String(product.category || '').trim().toLowerCase();
+      const finalSubcategory = hasSubcategory ? normalizedSubcategory : String(product.subcategory || '').trim().toLowerCase();
 
-      updatePayload.category = normalizedCategory;
-      updatePayload.subcategory = normalizedCategory === 'other' ? 'other' : normalizedSubcategory;
-      updatePayload.requestedCategoryName = normalizedCategory === 'other' ? normalizedOtherCategory : '';
+      if (!finalSubcategory) {
+        return res.status(400).json({ error: 'Subcategory is required' });
+      }
+
+      updatePayload.category = finalCategory;
+      updatePayload.subcategory = finalCategory === 'other' ? 'other' : finalSubcategory;
+      updatePayload.requestedCategoryName = finalCategory === 'other' ? normalizedOtherCategory : '';
       updatePayload.requestedSubcategoryName =
-        normalizedCategory === 'other'
+        finalCategory === 'other'
           ? normalizedOtherSubcategory
-          : (normalizedSubcategory === 'other' ? normalizedOtherSubcategory : '');
+          : (finalSubcategory === 'other' ? normalizedOtherSubcategory : '');
     }
 
     const requestCategoryImageFile = getUploadedFiles(req, 'requestedCategoryImage')[0];
@@ -244,6 +270,23 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
 
     if (requestSubcategoryImageFile) {
       updatePayload.requestedSubcategoryImage = await uploadBufferToCloudinary(requestSubcategoryImageFile.buffer);
+    }
+
+    const nextCategory = String(updatePayload.category ?? product.category ?? '').trim().toLowerCase();
+    const nextCategoryImage = String(
+      updatePayload.requestedCategoryImage ?? product.requestedCategoryImage ?? ''
+    ).trim();
+    const nextSubcategoryImage = String(
+      updatePayload.requestedSubcategoryImage ?? product.requestedSubcategoryImage ?? ''
+    ).trim();
+
+    if (nextCategory === 'other') {
+      if (!nextCategoryImage) {
+        return res.status(400).json({ error: 'Category image is required for a new category request' });
+      }
+      if (!nextSubcategoryImage) {
+        return res.status(400).json({ error: 'Subcategory image is required for a new category request' });
+      }
     }
 
     if (productImageFiles.length > 0) {
@@ -264,7 +307,11 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
 
     res.json({ success: true, message: 'Product updated', product: updated });
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Failed to update product' });
+    if (err.name === 'ValidationError' || err.message) {
+      return res.status(400).json({ error: err.message || 'Failed to update product' });
+    }
+
+    res.status(500).json({ error: 'Failed to update product' });
   }
 });
 

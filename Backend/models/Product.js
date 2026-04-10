@@ -39,7 +39,7 @@ const productSchema = new mongoose.Schema({
     type: String,
     trim: true,
     lowercase: true,
-    default: '',
+    required: true,
   },
   requestedCategoryName: {
     type: String,
@@ -106,13 +106,26 @@ productSchema.pre('save', async function () {
     this.requestedCategoryName = requestedCategory;
     this.requestedSubcategoryName = requestedSubcategory;
 
+    if (!this.subcategory) {
+      throw new Error('Subcategory is required.');
+    }
+
     if (this.category === 'other') {
       if (!this.requestedCategoryName) {
         throw new Error('Custom category name is required when category is "other".');
       }
+      if (!this.requestedSubcategoryName) {
+        throw new Error('Custom subcategory name is required when category is "other".');
+      }
       this.taxonomyStatus = 'pending';
       this.requestedCategoryImage = String(this.requestedCategoryImage || '').trim();
       this.requestedSubcategoryImage = String(this.requestedSubcategoryImage || '').trim();
+      if (!this.requestedCategoryImage) {
+        throw new Error('Category image is required when requesting a new category.');
+      }
+      if (!this.requestedSubcategoryImage) {
+        throw new Error('Subcategory image is required when requesting a new category.');
+      }
       return;
     }
 
@@ -152,8 +165,8 @@ productSchema.pre('save', async function () {
       if (!configuredSubcategories.includes(this.subcategory)) {
         throw new Error(`Invalid subcategory "${this.subcategory}" for category "${this.category}".`);
       }
-    } else if (this.subcategory) {
-      throw new Error(`Subcategory is not configured for category "${this.category}".`);
+    } else {
+      throw new Error(`Subcategory is not configured for category "${this.category}". Please request a custom subcategory.`);
     }
 });
 
@@ -190,9 +203,22 @@ productSchema.pre('findOneAndUpdate', async function () {
       $set.requestedSubcategoryImage ?? update.requestedSubcategoryImage ?? existing.requestedSubcategoryImage ?? ''
     ).trim();
 
+    if (!subcategory) {
+      throw new Error('Subcategory is required.');
+    }
+
     if (category === 'other') {
       if (!requestedCategoryName) {
         throw new Error('Custom category name is required when category is "other".');
+      }
+      if (!requestedSubcategoryName) {
+        throw new Error('Custom subcategory name is required when category is "other".');
+      }
+      if (!requestedCategoryImage) {
+        throw new Error('Category image is required when requesting a new category.');
+      }
+      if (!requestedSubcategoryImage) {
+        throw new Error('Subcategory image is required when requesting a new category.');
       }
       if (update.$set) {
         update.$set.category = 'other';
@@ -239,8 +265,8 @@ productSchema.pre('findOneAndUpdate', async function () {
       if (!configuredSubcategories.includes(subcategory)) {
         throw new Error(`Invalid subcategory "${subcategory}" for category "${category}".`);
       }
-    } else if (subcategory) {
-      throw new Error(`Subcategory is not configured for category "${category}".`);
+    } else {
+      throw new Error(`Subcategory is not configured for category "${category}". Please request a custom subcategory.`);
     }
 
     if (update.$set) {

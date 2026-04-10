@@ -38,7 +38,10 @@ function Products() {
   const [resolving, setResolving] = useState(null);
   const [finalCategory, setFinalCategory] = useState('');
   const [finalSubcategory, setFinalSubcategory] = useState('');
+  const [categoryImage, setCategoryImage] = useState('');
   const [subcategoryReferenceImage, setSubcategoryReferenceImage] = useState('');
+  const [useRequestedCategoryImage, setUseRequestedCategoryImage] = useState(false);
+  const [useRequestedSubcategoryImage, setUseRequestedSubcategoryImage] = useState(false);
 
   const token = localStorage.getItem('adminToken');
 
@@ -169,7 +172,10 @@ function Products() {
     setResolving(product);
     setFinalCategory((product.category !== 'other' ? product.category : product.requestedCategoryName) || '');
     setFinalSubcategory((product.subcategory !== 'other' ? product.subcategory : product.requestedSubcategoryName) || '');
+    setCategoryImage('');
     setSubcategoryReferenceImage('');
+    setUseRequestedCategoryImage(Boolean(product.requestedCategoryImage));
+    setUseRequestedSubcategoryImage(Boolean(product.requestedSubcategoryImage));
   };
 
   const resolveTaxonomy = async () => {
@@ -188,7 +194,14 @@ function Products() {
       body: JSON.stringify({
         finalCategory: finalCategory.trim().toLowerCase(),
         finalSubcategory: finalSubcategory.trim().toLowerCase(),
-        subcategoryReferenceImage: subcategoryReferenceImage.trim(),
+        categoryImage: useRequestedCategoryImage
+          ? String(resolving?.requestedCategoryImage || '').trim()
+          : categoryImage.trim(),
+        subcategoryReferenceImage: useRequestedSubcategoryImage
+          ? String(resolving?.requestedSubcategoryImage || '').trim()
+          : subcategoryReferenceImage.trim(),
+        clearCategoryImage: !useRequestedCategoryImage && !categoryImage.trim(),
+        clearSubcategoryReferenceImage: !useRequestedSubcategoryImage && !subcategoryReferenceImage.trim(),
       }),
     });
 
@@ -235,6 +248,8 @@ function Products() {
                 <td className="p-6 text-sm text-amber-700">
                   <div>Category: {p.requestedCategoryName || '-'}</div>
                   <div>Subcategory: {p.requestedSubcategoryName || '-'}</div>
+                  {p.requestedCategoryImage && <div><a href={p.requestedCategoryImage} target="_blank" rel="noreferrer" className="text-blue-600 underline">Category image</a></div>}
+                  {p.requestedSubcategoryImage && <div><a href={p.requestedSubcategoryImage} target="_blank" rel="noreferrer" className="text-blue-600 underline">Subcategory image</a></div>}
                 </td>
               )}
               <td className="p-6 text-center">
@@ -428,6 +443,48 @@ function Products() {
                 </div>
               </div>
 
+              {(resolving.requestedCategoryImage || resolving.requestedSubcategoryImage) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border rounded-2xl p-4">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Requested Category Image</p>
+                    {resolving.requestedCategoryImage ? (
+                      <>
+                        <img src={resolving.requestedCategoryImage} alt="Requested category" className="w-full h-40 object-cover rounded-xl border" />
+                        <label className="flex items-center gap-2 mt-3 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={useRequestedCategoryImage}
+                            onChange={(e) => setUseRequestedCategoryImage(e.target.checked)}
+                          />
+                          Use seller submitted image
+                        </label>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500">No category image submitted</p>
+                    )}
+                  </div>
+
+                  <div className="border rounded-2xl p-4">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Requested Subcategory Image</p>
+                    {resolving.requestedSubcategoryImage ? (
+                      <>
+                        <img src={resolving.requestedSubcategoryImage} alt="Requested subcategory" className="w-full h-40 object-cover rounded-xl border" />
+                        <label className="flex items-center gap-2 mt-3 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={useRequestedSubcategoryImage}
+                            onChange={(e) => setUseRequestedSubcategoryImage(e.target.checked)}
+                          />
+                          Use seller submitted image
+                        </label>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500">No subcategory image submitted</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm text-gray-600 mb-1">Final Category</label>
                 <input
@@ -449,11 +506,23 @@ function Products() {
               </div>
 
               <div>
+                <label className="block text-sm text-gray-600 mb-1">Category Image URL (optional)</label>
+                <input
+                  value={categoryImage}
+                  onChange={(e) => setCategoryImage(e.target.value)}
+                  disabled={useRequestedCategoryImage}
+                  className="w-full border rounded-2xl px-4 py-3 disabled:bg-gray-100"
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm text-gray-600 mb-1">Subcategory Reference Image URL (optional)</label>
                 <input
                   value={subcategoryReferenceImage}
                   onChange={(e) => setSubcategoryReferenceImage(e.target.value)}
-                  className="w-full border rounded-2xl px-4 py-3"
+                  disabled={useRequestedSubcategoryImage}
+                  className="w-full border rounded-2xl px-4 py-3 disabled:bg-gray-100"
                   placeholder="https://..."
                 />
               </div>

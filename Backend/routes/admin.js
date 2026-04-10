@@ -1,31 +1,41 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
 
 const Product = require('../models/Product');
 const Enquiry = require('../models/Enquiry');
 const Seller = require('../models/Seller');
 const Category = require('../models/Category');
 
-const uploadDir = 'uploads/categories';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) return cb(null, true);
-    return cb(new Error('Only images are allowed'), false);
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) return cb(null, true);
+    return cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
   },
 });
+
+async function uploadBufferToCloudinary(buffer) {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      { resource_type: 'auto' },
+      (err, uploaded) => {
+        if (err) reject(err);
+        else resolve(uploaded?.secure_url || '');
+      }
+    ).end(buffer);
+  });
+}
 
 const allowedCategories = [
   'medicine', 'cosmetics', 'personal-care', 'food', 'beverages',
@@ -90,9 +100,22 @@ function normalizeCategorySubcategories(input) {
   }).filter((item) => item.name);
 }
 
-function buildCategoryPayload(req) {
+async function buildCategoryPayload(req) {
   const payload = {};
   const files = req.files || [];
+  const clearCategoryImage = ['1', 'true', 'yes'].includes(String(req.body.clearImage || '').toLowerCase());
+  const clearSubcategoryImages = req.body.clearSubcategoryImages
+    ? (() => {
+        try {
+          const parsed = JSON.parse(req.body.clearSubcategoryImages);
+          return Array.isArray(parsed)
+            ? parsed.map((name) => String(name || '').trim().toLowerCase()).filter(Boolean)
+            : [];
+        } catch {
+          return [];
+        }
+      })()
+    : [];
 
   if (typeof req.body.name === 'string') {
     payload.name = req.body.name.trim().toLowerCase();
@@ -105,18 +128,24 @@ function buildCategoryPayload(req) {
   if (req.body.subcategories !== undefined) {
     const normalized = normalizeSubcategories(req.body.subcategories);
 
-    payload.subcategories = normalized.map((item, index) => {
+    payload.subcategories = await Promise.all(normalized.map(async (item, index) => {
       const file = files.find((f) => f.fieldname === `subcategoryImage_${index}`);
+      if (clearSubcategoryImages.includes(item.name) && !file) {
+        return { ...item, referenceImage: '' };
+      }
       if (file) {
-        return { ...item, referenceImage: `/uploads/categories/${file.filename}` };
+        const imageUrl = await uploadBufferToCloudinary(file.buffer);
+        return { ...item, referenceImage: imageUrl };
       }
       return item;
-    });
+    }));
   }
 
   const categoryImage = files.find((f) => f.fieldname === 'image');
   if (categoryImage) {
-    payload.image = `/uploads/categories/${categoryImage.filename}`;
+    payload.image = await uploadBufferToCloudinary(categoryImage.buffer);
+  } else if (clearCategoryImage) {
+    payload.image = '';
   }
 
   return payload;
@@ -146,6 +175,8 @@ async function ensureCategoryAndSubcategory(categoryName, subcategoryName, optio
   const normalizedSubcategory = String(subcategoryName || '').trim().toLowerCase();
   const categoryImage = String(options.categoryImage || '').trim();
   const subcategoryReferenceImage = String(options.subcategoryReferenceImage || '').trim();
+  const clearCategoryImage = options.clearCategoryImage === true;
+  const clearSubcategoryReferenceImage = options.clearSubcategoryReferenceImage === true;
 
   if (!normalizedCategory) {
     throw new Error('Final category is required');
@@ -160,11 +191,13 @@ async function ensureCategoryAndSubcategory(categoryName, subcategoryName, optio
     categoryDoc = await Category.create({
       name: normalizedCategory,
       description: '',
-      image: categoryImage || 'https://picsum.photos/id/20/600/400',
+      image: categoryImage || '',
       subcategories: [],
     });
   } else if (categoryImage) {
     categoryDoc.image = categoryImage;
+  } else if (clearCategoryImage) {
+    categoryDoc.image = '';
   }
 
   const existingSubcategories = Array.isArray(categoryDoc.subcategories)
@@ -179,14 +212,16 @@ async function ensureCategoryAndSubcategory(categoryName, subcategoryName, optio
   if (index === -1) {
     existingSubcategories.push({
       name: normalizedSubcategory,
-      referenceImage: String(subcategoryReferenceImage || '').trim(),
+      referenceImage: clearSubcategoryReferenceImage ? '' : String(subcategoryReferenceImage || '').trim(),
     });
   } else {
     const current = existingSubcategories[index];
     const currentRef = typeof current === 'string' ? '' : String(current.referenceImage || '').trim();
     existingSubcategories[index] = {
       name: normalizedSubcategory,
-      referenceImage: String(subcategoryReferenceImage || '').trim() || currentRef,
+      referenceImage: clearSubcategoryReferenceImage
+        ? ''
+        : (String(subcategoryReferenceImage || '').trim() || currentRef),
     };
   }
 
@@ -217,7 +252,7 @@ router.get('/categories', async (req, res) => {
         name,
         isDefault: allowedCategories.includes(name),
         description: dbCat?.description || '',
-        image: dbCat?.image || 'https://picsum.photos/id/20/600/400',
+        image: dbCat?.image || '',
         subcategories: normalizedSubcategories,
       };
     });
@@ -231,7 +266,7 @@ router.get('/categories', async (req, res) => {
 
 router.post('/categories', upload.any(), async (req, res) => {
   try {
-    const payload = buildCategoryPayload(req);
+    const payload = await buildCategoryPayload(req);
 
     if (!payload.name || payload.name.length < 2) {
       return res.status(400).json({ success: false, message: 'Category name must be at least 2 characters' });
@@ -257,7 +292,7 @@ router.post('/categories', upload.any(), async (req, res) => {
 
 router.put('/categories/:id', upload.any(), async (req, res) => {
   try {
-    const payload = buildCategoryPayload(req);
+    const payload = await buildCategoryPayload(req);
 
     if (payload.name && payload.name.length < 2) {
       return res.status(400).json({ success: false, message: 'Category name must be at least 2 characters' });
@@ -485,11 +520,13 @@ router.post('/products/:id/resolve-taxonomy', async (req, res) => {
     const subcategoryReferenceImage = String(
       req.body.subcategoryReferenceImage || product.requestedSubcategoryImage || ''
     ).trim();
+    const clearCategoryImage = ['1', 'true', 'yes'].includes(String(req.body.clearCategoryImage || '').toLowerCase());
+    const clearSubcategoryReferenceImage = ['1', 'true', 'yes'].includes(String(req.body.clearSubcategoryReferenceImage || '').toLowerCase());
 
     const normalized = await ensureCategoryAndSubcategory(
       finalCategory,
       finalSubcategory,
-      { categoryImage, subcategoryReferenceImage }
+      { categoryImage, subcategoryReferenceImage, clearCategoryImage, clearSubcategoryReferenceImage }
     );
 
     const updatedProduct = await Product.findByIdAndUpdate(

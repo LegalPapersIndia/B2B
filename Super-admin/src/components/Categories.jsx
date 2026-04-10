@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { Edit2, Trash2, Plus } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api/admin`
-  : 'http://localhost:5000/api/admin';
+const API_BASE = 'http://localhost:5000/api/admin';
 
-const emptySub = () => ({ name: '', referenceImage: '', file: null, preview: '' });
+const getImageUrl = (url) => url && url.startsWith('http') ? url : `http://localhost:5000${url || ''}`;
+
+const emptySub = () => ({ name: '', referenceImage: '', file: null, preview: '', removeImage: false });
 
 function normalizeSubcategories(list) {
   if (!Array.isArray(list)) return [];
@@ -28,6 +28,7 @@ function Categories() {
   const [newDesc, setNewDesc] = useState('');
   const [newImage, setNewImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [clearNewImage, setClearNewImage] = useState(false);
   const [newSubcategories, setNewSubcategories] = useState([emptySub()]);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -35,6 +36,7 @@ function Categories() {
   const [editDesc, setEditDesc] = useState('');
   const [editImage, setEditImage] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState(null);
+  const [clearEditImage, setClearEditImage] = useState(false);
   const [editSubcategories, setEditSubcategories] = useState([emptySub()]);
 
   const token = localStorage.getItem('adminToken');
@@ -63,11 +65,12 @@ function Categories() {
     }
   };
 
-  const makeCategoryFormData = ({ name, description, imageFile, subcategories }) => {
+  const makeCategoryFormData = ({ name, description, imageFile, clearImage, subcategories }) => {
     const formData = new FormData();
     formData.append('name', name.trim().toLowerCase());
     if (description) formData.append('description', description);
     if (imageFile) formData.append('image', imageFile);
+    if (clearImage) formData.append('clearImage', 'true');
 
     const normalized = subcategories
       .map((sub) => ({
@@ -77,6 +80,15 @@ function Categories() {
       .filter((sub) => sub.name);
 
     formData.append('subcategories', JSON.stringify(normalized));
+    formData.append(
+      'clearSubcategoryImages',
+      JSON.stringify(
+        subcategories
+          .filter((sub) => sub.removeImage)
+          .map((sub) => String(sub.name || '').trim().toLowerCase())
+          .filter(Boolean)
+      )
+    );
 
     normalized.forEach((_, idx) => {
       const file = subcategories[idx]?.file;
@@ -111,6 +123,7 @@ function Categories() {
       name: newCategory,
       description: newDesc,
       imageFile: newImage,
+      clearImage: clearNewImage,
       subcategories: newSubcategories,
     });
 
@@ -139,12 +152,14 @@ function Categories() {
     setEditDesc(cat.description || '');
     setEditImage(null);
     setEditImagePreview(null);
+    setClearEditImage(false);
     setEditSubcategories(
       (cat.subcategories?.length ? cat.subcategories : [emptySub()]).map((sub) => ({
         name: sub.name,
         referenceImage: sub.referenceImage || '',
         file: null,
         preview: '',
+        removeImage: false,
       }))
     );
   };
@@ -154,6 +169,7 @@ function Categories() {
       name: editName,
       description: editDesc,
       imageFile: editImage,
+      clearImage: clearEditImage,
       subcategories: editSubcategories,
     });
 
@@ -206,6 +222,7 @@ function Categories() {
     setNewDesc('');
     setNewImage(null);
     setPreviewImage(null);
+    setClearNewImage(false);
     setNewSubcategories([emptySub()]);
     setShowAddForm(false);
   };
@@ -229,23 +246,39 @@ function Categories() {
             <input
               type="file"
               disabled={!editable}
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 updateSubAt(list, setList, idx, {
                   file,
                   preview: URL.createObjectURL(file),
+                  removeImage: false,
                 });
               }}
             />
+            <p className="text-xs text-gray-500 mt-1">JPEG, PNG, WebP only</p>
           </div>
 
           <div className="flex items-center gap-2">
             {(sub.preview || sub.referenceImage) ? (
-              <img src={sub.preview || sub.referenceImage} alt="ref" className="h-12 w-12 object-cover rounded-lg border" />
+              <img src={sub.preview || getImageUrl(sub.referenceImage)} alt="ref" className="h-12 w-12 object-cover rounded-lg border" />
             ) : (
               <span className="text-xs text-gray-500">No image</span>
+            )}
+            {editable && (sub.preview || sub.referenceImage) && (
+              <button
+                type="button"
+                onClick={() => updateSubAt(list, setList, idx, {
+                  file: null,
+                  preview: '',
+                  referenceImage: '',
+                  removeImage: true,
+                })}
+                className="text-red-600 text-sm"
+              >
+                Remove image
+              </button>
             )}
             {editable && list.length > 1 && (
               <button type="button" onClick={() => removeSubRow(list, setList, idx)} className="text-red-600 text-sm">Remove</button>
@@ -278,9 +311,13 @@ function Categories() {
             <input type="text" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Description (optional)" className="border rounded-2xl px-5 py-4" />
 
             <div className="md:col-span-2">
-              <label className="block mb-2">Category Image</label>
-              <input type="file" accept="image/*" onChange={handleImageChange(setNewImage, setPreviewImage)} />
-              {previewImage && <img src={previewImage} alt="preview" className="mt-4 h-32 object-cover rounded-xl" />}
+                <label className="block mb-2">Category Image</label>
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => {
+                setClearNewImage(false);
+                handleImageChange(setNewImage, setPreviewImage)(e);
+              }} />
+              <p className="text-sm text-gray-500 mt-1">Accepted formats: JPEG, PNG, WebP</p>
+              {(previewImage || (!clearNewImage && newImage)) && <img src={previewImage} alt="preview" className="mt-4 h-32 object-cover rounded-xl" />}
             </div>
 
             <div className="md:col-span-2">
@@ -311,7 +348,7 @@ function Categories() {
             {categories.map((cat) => (
               <tr key={cat._id || cat.name} className="border-t hover:bg-gray-50 align-top">
                 <td className="p-6">
-                  <img src={cat.image} alt={cat.name} className="w-16 h-16 object-cover rounded-xl" />
+                  <img src={getImageUrl(cat.image) || 'https://picsum.photos/id/20/200/200'} alt={cat.name} className="w-16 h-16 object-cover rounded-xl" />
                 </td>
                 <td className="p-6 font-medium">{cat.name}</td>
                 <td className="p-6">
@@ -320,7 +357,7 @@ function Categories() {
                     {(cat.subcategories || []).map((sub) => (
                       <div key={sub.name} className="text-sm flex items-center gap-2">
                         <span>{sub.name}</span>
-                        {sub.referenceImage && <a href={sub.referenceImage} target="_blank" rel="noreferrer" className="text-blue-600 underline">Image</a>}
+                        {sub.referenceImage && <a href={getImageUrl(sub.referenceImage)} target="_blank" rel="noreferrer" className="text-blue-600 underline">Image</a>}
                       </div>
                     ))}
                   </div>
@@ -355,9 +392,26 @@ function Categories() {
 
               <div>
                 <label className="block mb-2">Category Image</label>
-                <input type="file" accept="image/*" onChange={handleImageChange(setEditImage, setEditImagePreview)} />
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => {
+                  setClearEditImage(false);
+                  handleImageChange(setEditImage, setEditImagePreview)(e);
+                }} />
+                <p className="text-sm text-gray-500 mt-1">Accepted formats: JPEG, PNG, WebP</p>
+                {(editImagePreview || (!clearEditImage && editing.image)) && (
+                  <img src={editImagePreview || getImageUrl(editing.image)} alt="preview" className="mt-3 h-24 object-cover rounded-xl" />
+                )}
                 {(editImagePreview || editing.image) && (
-                  <img src={editImagePreview || editing.image} alt="preview" className="mt-3 h-24 object-cover rounded-xl" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditImage(null);
+                      setEditImagePreview(null);
+                      setClearEditImage(true);
+                    }}
+                    className="mt-3 text-sm text-red-600"
+                  >
+                    Remove category image
+                  </button>
                 )}
               </div>
 

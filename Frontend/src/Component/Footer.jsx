@@ -151,7 +151,7 @@ const Footer = () => {
         <div className="mt-12 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
           <p>© {new Date().getFullYear()} B2B Platform. All rights reserved.</p>
           <p className="mt-2">
-            Design And Developed By <a href='https://www.legalpapersindia.com/' target='blank' class="text-yellow-800">Legal Papers India </a> 
+            Design And Developed By <a href='https://www.legalpapersindia.com/' target='blank' className="text-yellow-800">Legal Papers India </a> 
           </p>
         </div>
       </div>

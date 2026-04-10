@@ -45,6 +45,16 @@ export default function SellerDashboard() {
   const [activeTab, setActiveTab] = useState("products");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    businessName: "",
+    email: "",
+    mobile: "",
+    address: "",
+    website: "",
+  });
 
   const [form, setForm] = useState({
     name: "",
@@ -80,6 +90,7 @@ export default function SellerDashboard() {
       fetchAllCategories();
       fetchMyProducts();
       fetchMyEnquiries();
+      fetchBusinessProfile();
     }
   }, [isLoaded, isSignedIn]);
 
@@ -174,6 +185,113 @@ export default function SellerDashboard() {
     }
   };
 
+  const fetchBusinessProfile = async () => {
+    try {
+      setProfileLoading(true);
+      const token = await getToken();
+      const res = await axios.get(`${API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const profile = res.data?.user || {};
+      setProfileForm({
+        businessName: profile.company || user?.unsafeMetadata?.businessName || "",
+        email: profile.email || user?.primaryEmailAddress?.emailAddress || user?.unsafeMetadata?.email || "",
+        mobile: profile.phone || user?.unsafeMetadata?.mobile || "",
+        address: profile.address || user?.unsafeMetadata?.address || "",
+        website: profile.website || user?.unsafeMetadata?.website || "",
+      });
+    } catch (err) {
+      console.error("Error fetching business profile:", err);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleProfileInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!profileForm.businessName || !profileForm.email || !profileForm.mobile || !profileForm.address) {
+      alert("Business name, email, mobile and address are required");
+      return;
+    }
+
+    try {
+      setProfileSubmitting(true);
+      const token = await getToken();
+      await axios.post(
+        `${API_BASE_URL}/auth/complete-profile`,
+        {
+          businessName: profileForm.businessName,
+          email: profileForm.email,
+          mobile: profileForm.mobile,
+          address: profileForm.address,
+          website: profileForm.website,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (typeof user?.reload === "function") {
+        await user.reload();
+      }
+
+      await fetchBusinessProfile();
+      alert("Business profile updated successfully");
+    } catch (err) {
+      console.error("Profile update error:", err);
+      alert(err.response?.data?.message || "Failed to update business profile");
+    } finally {
+      setProfileSubmitting(false);
+    }
+  };
+
+  const updateEnquiryStatus = async (enquiryId, status) => {
+    try {
+      setStatusUpdatingId(enquiryId);
+      const token = await getToken();
+      const res = await axios.patch(
+        `${API_BASE_URL}/enquiries/my/${enquiryId}/status`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setEnquiries((prev) =>
+        prev.map((enq) =>
+          enq._id === enquiryId
+            ? { ...enq, ...res.data.enquiry }
+            : enq
+        )
+      );
+    } catch (err) {
+      console.error("Error updating enquiry status:", err);
+      alert(err.response?.data?.error || "Failed to update enquiry status");
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
+
+  const getStatusClasses = (status) => {
+    switch (status) {
+      case "contacted":
+        return "bg-emerald-100 text-emerald-700";
+      case "rejected":
+        return "bg-red-100 text-red-700";
+      case "closed":
+        return "bg-slate-200 text-slate-700";
+      case "replied":
+        return "bg-blue-100 text-blue-700";
+      default:
+        return "bg-amber-100 text-amber-700";
+    }
+  };
+
   const handleImageSelect = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 4) {
@@ -212,8 +330,8 @@ export default function SellerDashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.category || !form.price) {
-      alert("Product Name, Category and Price are required");
+    if (!form.name || !form.category || !form.subcategory || !form.price) {
+      alert("Product Name, Category, Subcategory and Price are required");
       return;
     }
 
@@ -227,9 +345,13 @@ export default function SellerDashboard() {
       return;
     }
 
-    const hasConfiguredSubcategories = form.category !== 'other' && subcategoryOptions.length > 0;
-    if (hasConfiguredSubcategories && !form.subcategory) {
-      alert('Please select subcategory');
+    if (form.category === 'other' && !requestedCategoryImage && !editingId) {
+      alert('New category request ke liye category image upload karna zaroori hai');
+      return;
+    }
+
+    if (form.category === 'other' && !requestedSubcategoryImage && !editingId) {
+      alert('New category request ke liye subcategory image upload karna zaroori hai');
       return;
     }
 
@@ -338,6 +460,12 @@ export default function SellerDashboard() {
               Welcome back, {user?.firstName || user?.unsafeMetadata?.businessName || "User"}
             </p>
           </div>
+          <button
+            onClick={() => setActiveTab("profile")}
+            className="bg-white border border-emerald-200 hover:border-emerald-400 text-emerald-700 px-6 py-3 rounded-2xl font-semibold transition-all"
+          >
+            Edit Business Profile
+          </button>
         </div>
 
         <div className="flex border-b mb-8 bg-white rounded-t-3xl shadow-sm">
@@ -356,6 +484,14 @@ export default function SellerDashboard() {
             }`}
           >
             Enquiries ({enquiries.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`flex-1 py-5 text-lg font-semibold transition-all ${
+              activeTab === "profile" ? "border-b-4 border-emerald-600 text-emerald-700" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Business Profile
           </button>
         </div>
 
@@ -401,9 +537,10 @@ export default function SellerDashboard() {
                     />
                     <input
                       type="text"
-                      placeholder="Enter Custom Subcategory (Optional)"
+                      placeholder="Enter Custom Subcategory Name *"
                       value={form.otherSubcategory}
                       onChange={(e) => setForm({ ...form, otherSubcategory: e.target.value })}
+                      required
                       className="px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -416,7 +553,7 @@ export default function SellerDashboard() {
                       onChange={(e) => handleSubcategoryChange(e.target.value)}
                       className="px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500 bg-white"
                     >
-                      <option value="">Select Subcategory</option>
+                      <option value="">Select Subcategory *</option>
                       {subcategoryOptions.map((sub) => (
                         <option key={sub.name} value={sub.name}>{toTitle(sub.name)}</option>
                       ))}
@@ -434,7 +571,7 @@ export default function SellerDashboard() {
                       />
                     ) : (
                       <div className="flex items-center rounded-2xl border border-gray-200 px-4 text-sm text-gray-500">
-                        If category/subcategory is missing, select Other and send request to super admin.
+                        Subcategory required hai. Agar list me missing ho to Other select karke request bhejiye.
                       </div>
                     )}
                   </div>
@@ -445,7 +582,7 @@ export default function SellerDashboard() {
                     {form.category === 'other' && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          New Category Reference Image (Optional)
+                          New Category Reference Image *
                         </label>
                         <input
                           type="file"
@@ -459,7 +596,7 @@ export default function SellerDashboard() {
                     {form.subcategory === 'other' && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          New Subcategory Reference Image (Optional)
+                          New Subcategory Reference Image {form.category === 'other' ? '*' : '(Optional)'}
                         </label>
                         <input
                           type="file"
@@ -471,7 +608,9 @@ export default function SellerDashboard() {
                     )}
 
                     <div className="md:col-span-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
-                      This request will go to super admin for approval. After approval, category/subcategory and reference image will be added.
+                      {form.category === 'other'
+                        ? 'Agar aap new category bana rahe ho to category aur subcategory dono ki image upload karni hogi. Request super admin ke paas jayegi aur final image selection bhi super admin hi karega.'
+                        : 'Missing subcategory request super admin ke paas jayegi. Final subcategory image super admin approve karega.'}
                     </div>
                   </div>
                 )}
@@ -612,7 +751,7 @@ export default function SellerDashboard() {
                           Rs {enq.productId?.price?.toLocaleString('en-IN')}
                         </p>
                       </div>
-                      <span className="px-5 py-1.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                      <span className={`px-5 py-1.5 rounded-full text-sm font-medium ${getStatusClasses(enq.status)}`}>
                         {enq.status.toUpperCase()}
                       </span>
                     </div>
@@ -628,13 +767,43 @@ export default function SellerDashboard() {
                           <span className="text-gray-500 block">Email</span>
                           <span className="font-semibold text-blue-600">{enq.buyerEmail}</span>
                         </div>
+                        {enq.buyerPhone && (
+                          <div>
+                            <span className="text-gray-500 block">Phone</span>
+                            <span className="font-semibold">{enq.buyerPhone}</span>
+                          </div>
+                        )}
                         {enq.buyerCompany && (
-                          <div className="md:col-span-2">
+                          <div className={enq.buyerPhone ? "md:col-span-2" : "md:col-span-1"}>
                             <span className="text-gray-500 block">Company</span>
                             <span className="font-semibold">{enq.buyerCompany}</span>
                           </div>
                         )}
                       </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <button
+                        onClick={() => updateEnquiryStatus(enq._id, "contacted")}
+                        disabled={statusUpdatingId === enq._id || enq.status === "contacted"}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white text-sm font-medium transition"
+                      >
+                        {statusUpdatingId === enq._id && enq.status !== "contacted" ? "Updating..." : "Mark Contacted"}
+                      </button>
+                      <button
+                        onClick={() => updateEnquiryStatus(enq._id, "rejected")}
+                        disabled={statusUpdatingId === enq._id || enq.status === "rejected"}
+                        className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-medium transition"
+                      >
+                        {statusUpdatingId === enq._id && enq.status !== "rejected" ? "Updating..." : "Mark Rejected"}
+                      </button>
+                      <button
+                        onClick={() => updateEnquiryStatus(enq._id, "pending")}
+                        disabled={statusUpdatingId === enq._id || enq.status === "pending"}
+                        className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white text-sm font-medium transition"
+                      >
+                        {statusUpdatingId === enq._id && enq.status !== "pending" ? "Updating..." : "Set Pending"}
+                      </button>
                     </div>
 
                     {enq.message && (
@@ -659,10 +828,135 @@ export default function SellerDashboard() {
                     <p className="text-xs text-gray-400 mt-6">
                       Received: {new Date(enq.createdAt).toLocaleString('en-IN')}
                     </p>
+                    {enq.sellerStatusUpdatedAt && (
+                      <p className="text-xs text-gray-400 mt-2">
+                        Seller status updated: {new Date(enq.sellerStatusUpdatedAt).toLocaleString('en-IN')}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === "profile" && (
+          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8">
+            <div className="bg-white rounded-3xl shadow-xl p-8">
+              <p className="text-sm uppercase tracking-[0.2em] text-emerald-700 font-semibold">
+                Business Summary
+              </p>
+              <h2 className="text-3xl font-bold text-gray-900 mt-3">
+                {profileForm.businessName || user?.unsafeMetadata?.businessName || "Your Business"}
+              </h2>
+              <p className="text-gray-600 mt-3">
+                Yahin se aap apna business name, mail id, phone number, address aur website update kar sakte ho.
+              </p>
+
+              <div className="mt-8 space-y-5">
+                <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                  <p className="text-sm text-gray-500">Business Name</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1">{profileForm.businessName || "-"}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                  <p className="text-sm text-gray-500">Email ID</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1 break-all">{profileForm.email || "-"}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                  <p className="text-sm text-gray-500">Contact Number</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1">{profileForm.mobile || "-"}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                  <p className="text-sm text-gray-500">Address</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1 whitespace-pre-line">{profileForm.address || "-"}</p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                  <p className="text-sm text-gray-500">Website</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1 break-all">{profileForm.website || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl shadow-xl p-8">
+              <h2 className="text-2xl font-semibold mb-2">Edit Business Profile</h2>
+              <p className="text-gray-600 mb-8">
+                Jo details buyers aur admins dekhte hain, unko yahan se update kar lo.
+              </p>
+
+              {profileLoading ? (
+                <div className="text-gray-500">Loading profile...</div>
+              ) : (
+                <form onSubmit={handleProfileSubmit} className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
+                    <input
+                      type="text"
+                      name="businessName"
+                      value={profileForm.businessName}
+                      onChange={handleProfileInputChange}
+                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email ID *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={profileForm.email}
+                      onChange={handleProfileInputChange}
+                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Number *</label>
+                    <input
+                      type="tel"
+                      name="mobile"
+                      value={profileForm.mobile}
+                      onChange={handleProfileInputChange}
+                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+                    <textarea
+                      name="address"
+                      rows="4"
+                      value={profileForm.address}
+                      onChange={handleProfileInputChange}
+                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500 resize-y"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                    <input
+                      type="text"
+                      name="website"
+                      placeholder="https://example.com"
+                      value={profileForm.website}
+                      onChange={handleProfileInputChange}
+                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={profileSubmitting}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white py-4 rounded-2xl font-semibold text-lg transition-all"
+                  >
+                    {profileSubmitting ? "Saving Profile..." : "Save Business Profile"}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         )}
       </div>

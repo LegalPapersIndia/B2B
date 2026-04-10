@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
         _id: dbCat?._id,
         name,
         description: dbCat?.description || '',
-        image: dbCat?.image || 'https://picsum.photos/id/20/600/400',
+        image: dbCat?.image || '',
         subcategories: normalizedSubcategories,
       };
     });

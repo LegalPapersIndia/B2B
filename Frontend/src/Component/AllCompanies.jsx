@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { MapPin, Mail, Phone, ArrowRight, Star } from 'lucide-react';
+import { MapPin, Mail, ArrowRight, Boxes } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
@@ -12,7 +12,6 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 export default function AllCompanies() {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchCompanies();
@@ -29,20 +28,16 @@ export default function AllCompanies() {
     }
   };
 
-  const filteredCompanies = companies.filter((c) =>
-    (c.company || c.companyName || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12">
           <div>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900">
-              Featured Sellers
+              Our Associates
             </h2>
             <p className="text-gray-600 mt-3 text-lg">
-              Trusted manufacturers and suppliers across India
+              Registered businesses with their products and company details in one place
             </p>
           </div>
 
@@ -50,7 +45,7 @@ export default function AllCompanies() {
             to="/companies"
             className="mt-4 md:mt-0 flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium group"
           >
-            View All Companies 
+            View All Associates
             <ArrowRight className="group-hover:translate-x-1 transition" />
           </Link>
         </div>
@@ -59,7 +54,7 @@ export default function AllCompanies() {
           <div className="text-center py-12 text-gray-500">Loading Sellers...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredCompanies.slice(0, 8).map((company, i) => (   // Show only 8 on home
+            {companies.slice(0, 8).map((company, i) => (
               <motion.div
                 key={company._id}
                 initial={{ opacity: 0, y: 20 }}
@@ -79,6 +74,12 @@ export default function AllCompanies() {
                   )}
 
                   <div className="mt-4 space-y-2 text-sm text-gray-600">
+                    {company.productCount ? (
+                      <div className="flex items-center gap-2">
+                        <Boxes className="w-4 h-4" />
+                        <span>{company.productCount} products</span>
+                      </div>
+                    ) : null}
                     {company.email && (
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4" />
@@ -97,7 +98,7 @@ export default function AllCompanies() {
                     to={`/company/${company._id}`}
                     className="mt-6 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-medium transition-all"
                   >
-                    View Profile & Products
+                    Explore
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -112,7 +113,7 @@ export default function AllCompanies() {
             to="/companies"
             className="inline-flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-semibold text-lg transition"
           >
-            Explore All Sellers
+            Explore All Associates
             <ArrowRight />
           </Link>
         </div>

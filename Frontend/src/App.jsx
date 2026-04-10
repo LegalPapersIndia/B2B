@@ -22,6 +22,8 @@ import CategoryPage from './Pages/Categorypage';
 import SubcategoryPage from './Pages/SubcategoryPage';
 import ScrollToTop from './Component/ScrollToTop';
 import CompleteProfile from './Pages/CompleteProfile';
+import CompaniesPage from './Pages/Company';
+import CompanyDetail from './Pages/CompanyDetail';
 
 function AppContent() {
   const { user, isLoaded } = useUser();
@@ -30,13 +32,27 @@ function AppContent() {
   useEffect(() => {
     if (!isLoaded || !user) return;
 
-    // Seller ko automatically dashboard pe redirect karo
-    if (user.unsafeMetadata?.role === 'seller') {
+    const metadata = user.unsafeMetadata || {};
+    const isProfileComplete = metadata.profileCompleted === true ||
+      (metadata.businessName && metadata.mobile && metadata.address);
+
+    // If profile not complete, redirect to complete-profile
+    if (!isProfileComplete) {
       const currentPath = window.location.pathname;
-      if (currentPath === '/' || currentPath === '/select-role') {
-        navigate('/seller-dashboard', { replace: true });
+      if (currentPath !== '/complete-profile' && currentPath !== '/sso-callback') {
+        navigate('/complete-profile', { replace: true });
+        return;
       }
     }
+
+    // Seller ko automatically dashboard pe redirect karo
+    // Commented out to prevent auto redirect for all users
+    // if (metadata.role === 'seller' && isProfileComplete) {
+    //   const currentPath = window.location.pathname;
+    //   if (currentPath === '/' || currentPath === '/select-role' || currentPath === '/complete-profile') {
+    //     navigate('/seller-dashboard', { replace: true });
+    //   }
+    // }
   }, [isLoaded, user, navigate]);
 
   return (
@@ -56,6 +72,8 @@ function AppContent() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/category/:slug/subcategory/:subslug" element={<SubcategoryPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/company/:id" element={<CompanyDetail />} />
           
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/complete-profile" element={<CompleteProfile />} />

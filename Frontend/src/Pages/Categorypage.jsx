@@ -5,9 +5,28 @@ import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 import { useUser } from "@clerk/clerk-react";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api`
-  : "http://localhost:5000/api";
+const API_BASE_URL = "http://localhost:5000/api";
+
+const categoryImageFallbacks = {
+  medicine: "https://www.biopharlifesciences.co.in/public/Blogs/1735552692jpg",
+  cosmetics: "https://cdn.britannica.com/35/222035-050-C68AD682/makeup-cosmetics.jpg",
+  "personal-care": "https://cdn.shopify.com/s/files/1/0646/1551/4330/files/Importance_of_Personal_Care_Products_480x480.webp?v=1673811372",
+  food: "https://static.vecteezy.com/system/resources/thumbnails/036/215/572/small/ai-generated-healthy-eating-wholegrain-cereal-plant-organic-food-vegetarian-meal-generated-by-ai-photo.jpg",
+  beverages: "https://restaurantindia.s3.ap-south-1.amazonaws.com/s3fs-public/2026-03/beverages1.jpg",
+  confectionery: "https://cdn.prod.website-files.com/63cf34956bc59159af577c42/64237ff9b0a52d91ed0e8466_confectionery%20feature%20image.jpg",
+  "daily-use": "https://images.financialexpressdigital.com/2025/09/diya-0001-2025-08-11T154519.556_20250902085553_20250912090708.jpg",
+  "home-kitchen": "https://sonigaracorp.com/images/blog/Home-Kitchen/Prioritise_Storage_Space.jpg",
+  construction: "https://d2d4xyu1zrrrws.cloudfront.net/website/web-ui/assets/images/temp/supply-chain-banner_msite.png",
+  machinery: "https://www.techniwaterjet.com/wp-content/uploads/2024/01/1.jpg",
+  electrical: "https://www.redlinegroup.com/app/data/blog/9c680883eff061d4999c1db10afcde5f.jpg",
+  apparel: "https://media.licdn.com/dms/image/v2/D5612AQEDHdzGbCofEg/article-cover_image-shrink_720_1280/article-cover_image-shrink_720_1280/0/1701235776902?e=2147483647&v=beta&t=1lfEXXz0oXwZlhstZCAkMXN1c-FDSpxLpSHTki9lGqE",
+  textiles: "https://cdn.shopify.com/s/files/1/0070/5023/1919/files/towel-g89d3b7292_1920_480x480.jpg?v=1650304781",
+  electronics: "https://5.imimg.com/data5/SELLER/Default/2023/12/368947394/SS/LC/GV/183411497/electronic-components-and-semiconductor-devices.png",
+  automotive: "https://images.jdmagicbox.com/quickquotes/images_main/-4ot4dcda.png",
+  agriculture: "https://kids.earth.org/wp-content/uploads/2022/04/Untitled-1024-%C3%97-768px-17.jpg",
+  packaging: "https://healeypackaging.co.uk/wp-content/uploads/2025/07/Types-of-Packaging-Materials-1-scaled.webp",
+  "pet-supplies": "https://s32519.pcdn.co/wp-content/uploads/2023/03/pet-supply-retail-feature-image-1136x480.png",
+};
 
 export default function CategoryPage() {
   const { slug } = useParams();
@@ -41,7 +60,7 @@ export default function CategoryPage() {
         slug: found.name,
         name: found.name.charAt(0).toUpperCase() + found.name.slice(1),
         desc: found.description || "High quality products available in bulk",
-        image: found.image || "https://picsum.photos/id/20/600/400",
+        image: found.image ? (found.image.startsWith('http') ? found.image : `${API_BASE_URL.replace('/api', '')}${found.image}`) : (categoryImageFallbacks[found.name] || "https://picsum.photos/id/20/600/400"),
       });
 
       const prodRes = await axios.get(`${API_BASE_URL}/products?category=${slug}`);

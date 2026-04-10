@@ -6,6 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 
 const productRoutes = require('./routes/products');
+const companyRoutes = require('./routes/companies');
 const authRoutes = require('./routes/auth'); // ADD THIS
 const enquiryRoutes = require('./routes/enquiries');
 const adminRoutes = require('./routes/admin');
@@ -47,9 +48,15 @@ app.use(ClerkExpressWithAuth());   // Global auth (optional)
 
 // ====================== ROUTES ======================
 app.use('/api/products', productRoutes);
+app.use('/api/companies', companyRoutes);
 app.use('/api/auth', authRoutes); // ADD THIS
 app.use('/api/enquiries', enquiryRoutes);
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+}, express.static('uploads'));
 
 app.use('/api/categories', require('./routes/category'));
 

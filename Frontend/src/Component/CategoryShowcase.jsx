@@ -5,9 +5,7 @@ import { ArrowRight, TrendingUp } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? `${import.meta.env.VITE_API_BASE_URL}/api`
-  : "http://localhost:5000/api";
+const API_BASE_URL = "http://localhost:5000/api";
 
 export const categoriesData = [
   { slug: "medicine", name: "Medicine & Pharmaceuticals", desc: "APIs, generics and medical devices", image: "https://www.biopharlifesciences.co.in/public/Blogs/1735552692jpg" },
@@ -30,6 +28,8 @@ export const categoriesData = [
   { slug: "pet-supplies", name: "Pet Supplies", desc: "Pet food, grooming & accessories", image: "https://s32519.pcdn.co/wp-content/uploads/2023/03/pet-supply-retail-feature-image-1136x480.png" },
 ];
 
+const categoryMetaMap = new Map(categoriesData.map((item) => [item.slug, item]));
+
 export default function CategoryShowcase() {
   const { isSignedIn, user } = useUser();
   const navigate = useNavigate();
@@ -46,16 +46,17 @@ export default function CategoryShowcase() {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`);
       if (res.data.success) {
-        const adminAdded = (res.data.categories || [])
-          .filter((cat) => !categoriesData.some((def) => def.slug === cat.name))
-          .map((cat) => ({
+        const merged = (res.data.categories || []).map((cat) => {
+          const fallback = categoryMetaMap.get(cat.name);
+          return {
             slug: cat.name,
-            name: cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
-            desc: cat.description || "Premium quality products",
-            image: cat.image || "https://picsum.photos/id/20/600/400",
-          }));
+            name: fallback?.name || cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
+            desc: cat.description || fallback?.desc || "Premium quality products",
+            image: cat.image ? (cat.image.startsWith('http') ? cat.image : `${API_BASE_URL.replace('/api', '')}${cat.image}`) : (fallback?.image || "https://picsum.photos/id/20/600/400"),
+          };
+        });
 
-        setAllCategories([...categoriesData, ...adminAdded]);
+        setAllCategories(merged);
       }
     } catch {
       setAllCategories(categoriesData);
