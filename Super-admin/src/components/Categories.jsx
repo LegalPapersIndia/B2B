@@ -2,9 +2,17 @@ import { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { Edit2, Trash2, Plus } from 'lucide-react';
 
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/api/admin`;
+const API_BASE = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}/api/admin`
+  : 'http://localhost:5000/api/admin';
 
-const getImageUrl = (url) => url && url.startsWith('http') ? url : `http://localhost:5000${url || ''}`;
+const getImageUrl = (url) => {
+  if (!url) return 'https://picsum.photos/id/20/200/200';
+  if (url.startsWith('http')) return url;
+  // Use the same base URL as API in production
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  return `${baseUrl}${url}`;
+};
 
 const emptySub = () => ({ name: '', referenceImage: '', file: null, preview: '', removeImage: false });
 
