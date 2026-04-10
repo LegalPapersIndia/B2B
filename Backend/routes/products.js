@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const Seller = require('../models/Seller');
+const CategoryRequest = require('../models/CategoryRequest');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
@@ -95,14 +96,15 @@ router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req,
     const requestedSubcategoryImage =
       requestSubcategoryImageFile ? await uploadBufferToCloudinary(requestSubcategoryImageFile.buffer) : '';
 
-    if (normalizedCategory === 'other') {
-      if (!requestedCategoryImage) {
-        return res.status(400).json({ error: 'Category image is required for a new category request' });
-      }
-      if (!requestedSubcategoryImage) {
-        return res.status(400).json({ error: 'Subcategory image is required for a new category request' });
-      }
-    }
+    // Images are optional for category requests
+    // if (normalizedCategory === 'other') {
+    //   if (!requestedCategoryImage) {
+    //     return res.status(400).json({ error: 'Category image is required for a new category request' });
+    //   }
+    //   if (!requestedSubcategoryImage) {
+    //     return res.status(400).json({ error: 'Subcategory image is required for a new category request' });
+    //   }
+    // }
 
     const product = new Product({
       clerkId,
@@ -322,6 +324,64 @@ router.delete('/:id', requireAuth, async (req, res) => {
     res.json({ success: true, message: 'Product deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
+// Category Request Routes
+router.post('/category-requests', requireAuth, requireCompletedProfile, upload.any(), async (req, res) => {
+  try {
+    const { type, name, description, category } = req.body;
+
+    if (!type || !['category', 'subcategory'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid type. Must be category or subcategory' });
+    }
+
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ error: 'Name must be at least 2 characters' });
+    }
+
+    if (type === 'subcategory' && !category) {
+      return res.status(400).json({ error: 'Category is required for subcategory requests' });
+    }
+
+    const clerkId = req.auth.userId;
+    const imageFile = getUploadedFiles(req, 'image')[0];
+
+    let imageUrl = '';
+    if (imageFile) {
+      imageUrl = await uploadBufferToCloudinary(imageFile.buffer);
+    }
+
+    const request = new CategoryRequest({
+      type,
+      name: name.trim().toLowerCase(),
+      description: description?.trim() || '',
+      image: imageUrl,
+      category: type === 'subcategory' ? category.trim().toLowerCase() : '',
+      requestedBy: clerkId,
+    });
+
+    await request.save();
+
+    res.status(201).json({
+      success: true,
+      message: `${type.charAt(0).toUpperCase() + type.slice(1)} request submitted successfully`,
+      request,
+    });
+  } catch (err) {
+    console.error('Category request error:', err);
+    res.status(500).json({ error: 'Failed to submit request' });
+  }
+});
+
+router.get('/category-requests/my', requireAuth, async (req, res) => {
+  try {
+    const clerkId = req.auth.userId;
+    const requests = await CategoryRequest.find({ requestedBy: clerkId }).sort({ createdAt: -1 }).lean();
+    res.json(requests);
+  } catch (err) {
+    console.error('Fetch my requests error:', err);
+    res.status(500).json({ error: 'Failed to fetch requests' });
   }
 });
 

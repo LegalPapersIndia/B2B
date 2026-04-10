@@ -70,7 +70,9 @@ export default function SellerDashboard() {
   const [selectedImages, setSelectedImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [requestedCategoryImage, setRequestedCategoryImage] = useState(null);
+  const [requestedCategoryPreview, setRequestedCategoryPreview] = useState(null);
   const [requestedSubcategoryImage, setRequestedSubcategoryImage] = useState(null);
+  const [requestedSubcategoryPreview, setRequestedSubcategoryPreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
   const isProfileComplete = user?.unsafeMetadata?.profileCompleted === true ||
@@ -91,6 +93,7 @@ export default function SellerDashboard() {
       fetchMyProducts();
       fetchMyEnquiries();
       fetchBusinessProfile();
+      fetchMyRequests();
     }
   }, [isLoaded, isSignedIn]);
 
@@ -172,6 +175,26 @@ export default function SellerDashboard() {
       setLoading(false);
     }
   };
+
+
+
+  const fetchMyRequests = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios.get(`${API_BASE_URL}/requests/my`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    
+    // Do something with the data
+    // For example:
+    // setMyRequests(res.data.requests || []);
+    
+    console.log("My Requests:", res.data);
+  } catch (err) {
+    console.error("Error fetching my requests:", err);
+    // Optionally show a toast/notification
+  }
+};
 
   const fetchMyEnquiries = async () => {
     try {
@@ -306,7 +329,7 @@ export default function SellerDashboard() {
     setForm((prev) => ({
       ...prev,
       category: value,
-      subcategory: '',
+      subcategory: value === 'other' ? 'other' : '',
       otherCategory: '',
       otherSubcategory: '',
     }));
@@ -345,15 +368,16 @@ export default function SellerDashboard() {
       return;
     }
 
-    if (form.category === 'other' && !requestedCategoryImage && !editingId) {
-      alert('New category request ke liye category image upload karna zaroori hai');
-      return;
-    }
+    // Images are optional for category requests
+    // if (form.category === 'other' && !requestedCategoryImage && !editingId) {
+    //   alert('New category request ke liye category image upload karna zaroori hai');
+    //   return;
+    // }
 
-    if (form.category === 'other' && !requestedSubcategoryImage && !editingId) {
-      alert('New category request ke liye subcategory image upload karna zaroori hai');
-      return;
-    }
+    // if (form.category === 'other' && !requestedSubcategoryImage && !editingId) {
+    //   alert('New category request ke liye subcategory image upload karna zaroori hai');
+    //   return;
+    // }
 
     setSubmitting(true);
     try {
@@ -412,7 +436,9 @@ export default function SellerDashboard() {
     setSelectedImages([]);
     setPreviewUrls([]);
     setRequestedCategoryImage(null);
+    setRequestedCategoryPreview(null);
     setRequestedSubcategoryImage(null);
+    setRequestedSubcategoryPreview(null);
     setEditingId(null);
   };
 
@@ -430,7 +456,9 @@ export default function SellerDashboard() {
     setEditingId(product._id);
     setPreviewUrls(product.images || []);
     setRequestedCategoryImage(null);
+    setRequestedCategoryPreview(null);
     setRequestedSubcategoryImage(null);
+    setRequestedSubcategoryPreview(null);
     setActiveTab("products");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -479,7 +507,7 @@ export default function SellerDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("enquiries")}
-            className={`flex-1 py-5 text-lg font-semibold rounded-tr-3xl transition-all ${
+            className={`flex-1 py-5 text-lg font-semibold transition-all ${
               activeTab === "enquiries" ? "border-b-4 border-emerald-600 text-emerald-700" : "text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -487,7 +515,7 @@ export default function SellerDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("profile")}
-            className={`flex-1 py-5 text-lg font-semibold transition-all ${
+            className={`flex-1 py-5 text-lg font-semibold rounded-tr-3xl transition-all ${
               activeTab === "profile" ? "border-b-4 border-emerald-600 text-emerald-700" : "text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -582,34 +610,48 @@ export default function SellerDashboard() {
                     {form.category === 'other' && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          New Category Reference Image *
+                          New Category Reference Image (Optional)
                         </label>
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => setRequestedCategoryImage(e.target.files?.[0] || null)}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setRequestedCategoryImage(file);
+                            setRequestedCategoryPreview(file ? URL.createObjectURL(file) : null);
+                          }}
                           className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
                         />
+                        {requestedCategoryPreview && (
+                          <img src={requestedCategoryPreview} alt="Category preview" className="mt-3 h-24 w-24 object-cover rounded-lg border" />
+                        )}
                       </div>
                     )}
 
                     {form.subcategory === 'other' && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          New Subcategory Reference Image {form.category === 'other' ? '*' : '(Optional)'}
+                          New Subcategory Reference Image (Optional)
                         </label>
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => setRequestedSubcategoryImage(e.target.files?.[0] || null)}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setRequestedSubcategoryImage(file);
+                            setRequestedSubcategoryPreview(file ? URL.createObjectURL(file) : null);
+                          }}
                           className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
                         />
+                        {requestedSubcategoryPreview && (
+                          <img src={requestedSubcategoryPreview} alt="Subcategory preview" className="mt-3 h-24 w-24 object-cover rounded-lg border" />
+                        )}
                       </div>
                     )}
 
                     <div className="md:col-span-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
                       {form.category === 'other'
-                        ? 'Agar aap new category bana rahe ho to category aur subcategory dono ki image upload karni hogi. Request super admin ke paas jayegi aur final image selection bhi super admin hi karega.'
+                        ? 'New category request super admin ke paas jayegi aur approval ke baad category add hogi. Images optional hai.'
                         : 'Missing subcategory request super admin ke paas jayegi. Final subcategory image super admin approve karega.'}
                     </div>
                   </div>

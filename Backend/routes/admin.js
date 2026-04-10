@@ -7,6 +7,7 @@ const Product = require('../models/Product');
 const Enquiry = require('../models/Enquiry');
 const Seller = require('../models/Seller');
 const Category = require('../models/Category');
+const CategoryRequest = require('../models/CategoryRequest');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -637,6 +638,82 @@ router.put('/enquiries/:id', async (req, res) => {
   } catch (err) {
     console.error('Enquiry update error:', err);
     res.status(500).json({ success: false, message: 'Failed to update enquiry' });
+  }
+});
+
+// Category Request Routes
+router.get('/category-requests', async (req, res) => {
+  try {
+    const requests = await CategoryRequest.find().sort({ createdAt: -1 }).lean();
+    res.json({ success: true, requests });
+  } catch (err) {
+    console.error('Fetch requests error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch requests' });
+  }
+});
+
+router.put('/category-requests/:id/approve', async (req, res) => {
+  try {
+    const request = await CategoryRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Request already processed' });
+    }
+
+    if (request.type === 'category') {
+      // Create new category
+      const category = new Category({
+        name: request.name,
+        description: request.description,
+        image: request.image,
+        subcategories: [],
+      });
+      await category.save();
+    } else if (request.type === 'subcategory') {
+      // Add to existing category
+      const category = await Category.findOne({ name: request.category });
+      if (!category) {
+        return res.status(404).json({ success: false, message: 'Parent category not found' });
+      }
+
+      category.subcategories.push({
+        name: request.name,
+        referenceImage: request.image,
+      });
+      await category.save();
+    }
+
+    request.status = 'approved';
+    request.reviewedBy = req.adminId || 'admin'; // Assuming admin auth sets this
+    await request.save();
+
+    res.json({ success: true, message: 'Request approved successfully' });
+  } catch (err) {
+    console.error('Approve request error:', err);
+    res.status(500).json({ success: false, message: 'Failed to approve request' });
+  }
+});
+
+router.put('/category-requests/:id/reject', async (req, res) => {
+  try {
+    const { note } = req.body;
+    const request = await CategoryRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Request already processed' });
+    }
+
+    request.status = 'rejected';
+    request.reviewedBy = req.adminId || 'admin';
+    request.reviewNote = note || '';
+    await request.save();
+
+    res.json({ success: true, message: 'Request rejected successfully' });
+  } catch (err) {
+    console.error('Reject request error:', err);
+    res.status(500).json({ success: false, message: 'Failed to reject request' });
   }
 });
 
