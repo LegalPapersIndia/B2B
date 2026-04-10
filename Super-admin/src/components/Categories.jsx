@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Layout from './Layout';
 import { Edit2, Trash2, Plus } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api/admin';
+const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/api/admin`;
 
 const getImageUrl = (url) => url && url.startsWith('http') ? url : `http://localhost:5000${url || ''}`;
 
