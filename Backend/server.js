@@ -62,7 +62,43 @@ app.use('/api/categories', require('./routes/category'));
 
 // Health Check
 app.get('/', (req, res) => {
-  res.json({ message: '✅ B2B Backend is running successfully!' });
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  res.json({
+    message: '✅ B2B Backend is running successfully!',
+    database: {
+      status: dbStatus,
+      name: mongoose.connection.name || 'unknown',
+      host: mongoose.connection.host || 'unknown'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Database status endpoint
+app.get('/api/health/db', (req, res) => {
+  const readyState = mongoose.connection.readyState;
+  const statusMap = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+
+  res.json({
+    database: {
+      status: statusMap[readyState] || 'unknown',
+      readyState: readyState,
+      name: mongoose.connection.name || null,
+      host: mongoose.connection.host || null,
+      port: mongoose.connection.port || null
+    },
+    atlas: {
+      isConnected: isConnected,
+      connectionAttempts: connectionAttempts,
+      lastError: connectionAttempts > 1 ? 'Connection failed, retries attempted' : null
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Admin Auth Route
@@ -72,15 +108,86 @@ app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', authenticateAdmin, adminRoutes);
 
 // ====================== MONGO CONNECTION ======================
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB Connected Successfully'))
-  .catch(err => {
-    console.error('❌ MongoDB Connection Error:', err);
-    process.exit(1);
-  });
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('❌ Missing MONGODB_URI environment variable');
+  process.exit(1);
+}
 
-// ====================== START SERVER ======================
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+// Connection state
+let isConnected = false;
+let connectionAttempts = 0;
+const MAX_CONNECTION_ATTEMPTS = 5;
+
+const connectToMongoDB = async (retryCount = 0) => {
+  try {
+    connectionAttempts++;
+    console.log(`🔄 Attempting MongoDB Atlas connection (attempt ${connectionAttempts})...`);
+
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+    });
+
+    isConnected = true;
+    console.log('✅ MongoDB Atlas Connected Successfully!');
+    console.log('📊 Connection established to Atlas cluster');
+
+    // Handle disconnection
+    mongoose.connection.on('disconnected', () => {
+      console.log('⚠️  MongoDB Atlas disconnected');
+      isConnected = false;
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      console.log('🔄 MongoDB Atlas reconnected');
+      isConnected = true;
+    });
+
+    return true;
+  } catch (err) {
+    console.error(`❌ MongoDB Atlas Connection Error (attempt ${connectionAttempts}):`, err.message);
+
+    if (err.name === 'MongooseServerSelectionError') {
+      console.error('👉 Possible issues:');
+      console.error('   - Atlas cluster might be paused (check Atlas dashboard)');
+      console.error('   - IP not whitelisted (add 0.0.0.0/0 for development)');
+      console.error('   - Network connectivity issues');
+      console.error('   - Invalid connection string');
+    }
+
+    if (retryCount < MAX_CONNECTION_ATTEMPTS) {
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Exponential backoff, max 30s
+      console.log(`⏳ Retrying connection in ${delay/1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return connectToMongoDB(retryCount + 1);
+    }
+
+    console.error(`❌ Failed to connect after ${MAX_CONNECTION_ATTEMPTS} attempts`);
+    console.error('🚨 Server will start but database operations will fail');
+    console.error('🔧 Please check your Atlas cluster status and network access');
+
+    return false;
+  }
+};
+
+// Start server with or without database connection
+const startServer = async () => {
+  const connected = await connectToMongoDB();
+
+  // ====================== START SERVER ======================
+  const PORT = process.env.PORT || 5000;
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    if (connected) {
+      console.log('🎉 Backend ready with database connection');
+    } else {
+      console.log('⚠️  Backend started but database connection failed');
+      console.log('📝 Admin categories and other features may not work until Atlas is fixed');
+    }
+  });
+};
+
+startServer();

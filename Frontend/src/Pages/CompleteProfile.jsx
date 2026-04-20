@@ -14,8 +14,9 @@ const CompleteProfile = () => {
     mobile: "",
     address: "",
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   // Check if profile is already complete
   useEffect(() => {
@@ -36,6 +37,7 @@ const CompleteProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess(false);
 
     if (!formData.businessName || !formData.mobile || !formData.address) {
       setError("Sab fields bharna zaroori hai");
@@ -53,8 +55,11 @@ const CompleteProfile = () => {
       });
 
       if (res.data.success) {
-        alert("Profile successfully saved! Welcome to B2B");
-        navigate("/");
+        setSuccess(true);
+        // Immediate redirect after brief success indication
+        setTimeout(() => {
+          navigate("/", { replace: true });
+        }, 800);
       }
     } catch (err) {
       console.error(err);
@@ -86,6 +91,15 @@ const CompleteProfile = () => {
           </div>
         )}
 
+        {success && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl mb-6 flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Profile saved successfully! Redirecting...
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium mb-1">Business Name <span className="text-red-500">*</span></label>
@@ -97,6 +111,7 @@ const CompleteProfile = () => {
               onChange={handleChange}
               className="w-full px-4 py-3 border rounded-2xl focus:outline-none focus:border-emerald-500"
               required
+              disabled={loading || success}
             />
           </div>
 
@@ -110,6 +125,7 @@ const CompleteProfile = () => {
               onChange={handleChange}
               className="w-full px-4 py-3 border rounded-2xl focus:outline-none focus:border-emerald-500"
               required
+              disabled={loading || success}
             />
           </div>
 
@@ -123,15 +139,16 @@ const CompleteProfile = () => {
               rows="3"
               className="w-full px-4 py-3 border rounded-2xl focus:outline-none focus:border-emerald-500 resize-y"
               required
+              disabled={loading || success}
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || success}
             className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-semibold rounded-2xl text-lg transition-all"
           >
-            {loading ? "Saving Profile..." : "Save Profile & Continue"}
+            {loading ? "Saving Profile..." : success ? "Profile Saved!" : "Save Profile & Continue"}
           </button>
         </form>
       </div>

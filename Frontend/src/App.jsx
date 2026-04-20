@@ -39,20 +39,14 @@ function AppContent() {
     // If profile not complete, redirect to complete-profile
     if (!isProfileComplete) {
       const currentPath = window.location.pathname;
-      if (currentPath !== '/complete-profile' && currentPath !== '/sso-callback') {
+      if (currentPath !== '/complete-profile' && currentPath !== '/sso-callback' && currentPath !== '/signup') {
         navigate('/complete-profile', { replace: true });
         return;
       }
     }
 
-    // Seller ko automatically dashboard pe redirect karo
-    // Commented out to prevent auto redirect for all users
-    // if (metadata.role === 'seller' && isProfileComplete) {
-    //   const currentPath = window.location.pathname;
-    //   if (currentPath === '/' || currentPath === '/select-role' || currentPath === '/complete-profile') {
-    //     navigate('/seller-dashboard', { replace: true });
-    //   }
-    // }
+    // Profile complete - user can access all pages
+    // No role-based redirects needed
   }, [isLoaded, user, navigate]);
 
   return (

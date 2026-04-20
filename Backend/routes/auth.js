@@ -9,14 +9,18 @@ const authMiddleware = ClerkExpressRequireAuth({
   onError: (err, req, res) => res.status(401).json({ error: 'Unauthorized' }),
 });
 
+// Normalize website URL
 function normalizeWebsite(website) {
   if (!website) return '';
   const value = String(website).trim();
   if (!value) return '';
-  if (value.startsWith('http://') || value.startsWith('https://')) return value;
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
   return `https://${value}`;
 }
 
+// Check if profile is complete
 function isProfileComplete(user) {
   return !!(
     user &&
@@ -33,10 +37,12 @@ router.get('/me', authMiddleware, async (req, res) => {
     const clerkId = req.auth.userId;
 
     const clerkUser = await clerkClient.users.getUser(clerkId);
+
     const primaryEmail =
       clerkUser.emailAddresses?.[0]?.emailAddress ||
       clerkUser.primaryEmailAddress?.emailAddress ||
       '';
+
     const fullName =
       clerkUser.fullName ||
       `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
@@ -74,23 +80,30 @@ router.get('/me', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('GET /me ERROR:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
   }
 });
 
 router.post('/complete-profile', authMiddleware, async (req, res) => {
   try {
     const clerkId = req.auth.userId;
+
     const clerkUser = await clerkClient.users.getUser(clerkId);
+
     const clerkEmail =
       clerkUser.emailAddresses?.[0]?.emailAddress ||
       clerkUser.primaryEmailAddress?.emailAddress ||
       '';
+
     const clerkFullName =
       clerkUser.fullName ||
       `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
       '';
 
+    // Extract and sanitize input
     const name = String(req.body.name || req.body.fullName || req.body.businessName || clerkFullName || '').trim();
     const company = String(req.body.company || req.body.businessName || '').trim();
     const email = String(req.body.email || clerkEmail || '').trim().toLowerCase();
@@ -100,16 +113,32 @@ router.post('/complete-profile', authMiddleware, async (req, res) => {
 
     const finalName = name || company;
 
-    if (!company || !phone || !address) {
+    // Validation
+    if (!company) {
       return res.status(400).json({
         success: false,
-        message: 'Company/Business name, phone/mobile and address are mandatory',
+        message: 'Company/Business name is required',
       });
     }
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone/Mobile number is required',
+      });
+    }
+
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Address is required',
+      });
+    }
+
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'Email is required. Please add email in account or send email in request.',
+        message: 'Email is required. Please add an email in your Clerk account or send it in the request.',
       });
     }
 
@@ -123,13 +152,15 @@ router.post('/complete-profile', authMiddleware, async (req, res) => {
       profileCompletedAt: new Date(),
     };
 
+    // Upsert user profile
     const user = await Seller.findOneAndUpdate(
       { clerkId },
       { $set: payload, $setOnInsert: { clerkId } },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true } // Enable validators if you have schema validation
     );
 
-    await clerkClient.users.updateUser(clerkId, {
+    // Update Clerk user metadata (fire and forget)
+    clerkClient.users.updateUser(clerkId, {
       unsafeMetadata: {
         profileCompleted: true,
         name: finalName,
@@ -138,15 +169,15 @@ router.post('/complete-profile', authMiddleware, async (req, res) => {
         email,
         address,
         website,
-        // backward compatible keys for old frontend checks
+        // Backward compatibility
         businessName: company,
         mobile: phone,
       },
-    });
+    }).catch(err => console.error('Clerk metadata update failed:', err));
 
     res.json({
       success: true,
-      message: 'Profile successfully saved',
+      message: 'Profile completed successfully',
       user: {
         id: user._id,
         clerkId: user.clerkId,
@@ -163,7 +194,7 @@ router.post('/complete-profile', authMiddleware, async (req, res) => {
     console.error('Complete Profile Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Internal server error',
     });
   }
 });
