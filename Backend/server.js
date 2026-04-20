@@ -191,7 +191,6 @@ const connectToMongoDB = async (retryCount = 0) => {
   }
 };
 
-// Start server with or without database connection
 const startServer = async () => {
   const connected = await connectToMongoDB();
 
