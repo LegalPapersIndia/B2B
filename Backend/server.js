@@ -17,18 +17,33 @@ const app = express();
 
 // ====================== MIDDLEWARE (Order is VERY Important) ======================
 app.use(helmet());
-const allowedOrigins = [
-  'http://localhost:5173', // user/seller panel
-  'http://localhost:5174',
+const configuredOrigins = [
   process.env.FRONTEND_URL,
-  process.env.ADMIN_FRONTEND_URL  // admin panel
+  process.env.ADMIN_FRONTEND_URL,
+  process.env.CORS_ORIGINS,
+]
+  .filter(Boolean)
+  .flatMap((value) => String(value).split(','))
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const devOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
 ];
+
+const allowedOrigins = new Set([
+  ...(process.env.NODE_ENV === 'production' ? [] : devOrigins),
+  ...configuredOrigins,
+]);
+
+const isAllowedOrigin = (origin) => !origin || allowedOrigins.has(origin);
 
 app.use(cors({
   origin: function(origin, callback) {
     console.log("🌐 Incoming Origin:", origin);
 
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       console.log("❌ Blocked by CORS:", origin);
@@ -52,7 +67,11 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/auth', authRoutes); // ADD THIS
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/uploads', (req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  const requestOrigin = req.headers.origin;
+  if (requestOrigin && allowedOrigins.has(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
