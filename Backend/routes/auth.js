@@ -2,14 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
 const { clerkClient } = require('@clerk/clerk-sdk-node');
-
 const Seller = require('../models/Seller');
-
 const authMiddleware = ClerkExpressRequireAuth({
   onError: (err, req, res) => res.status(401).json({ error: 'Unauthorized' }),
 });
-
-// Normalize website URL
 function normalizeWebsite(website) {
   if (!website) return '';
   const value = String(website).trim();
@@ -19,8 +15,6 @@ function normalizeWebsite(website) {
   }
   return `https://${value}`;
 }
-
-// Check if profile is complete
 function isProfileComplete(user) {
   return !!(
     user &&
@@ -31,25 +25,19 @@ function isProfileComplete(user) {
     user.address
   );
 }
-
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const clerkId = req.auth.userId;
-
     const clerkUser = await clerkClient.users.getUser(clerkId);
-
     const primaryEmail =
       clerkUser.emailAddresses?.[0]?.emailAddress ||
       clerkUser.primaryEmailAddress?.emailAddress ||
       '';
-
     const fullName =
       clerkUser.fullName ||
       `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
       '';
-
     let user = await Seller.findOne({ clerkId });
-
     if (!user) {
       user = await Seller.create({
         clerkId,
@@ -61,9 +49,7 @@ router.get('/me', authMiddleware, async (req, res) => {
       if (!user.name && fullName) user.name = fullName;
       await user.save();
     }
-
-    const complete = isProfileComplete(user);
-
+    const complete = isProfileComplete(user); 
     res.json({
       success: true,
       user: {
