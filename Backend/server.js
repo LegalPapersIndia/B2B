@@ -30,6 +30,8 @@ const configuredOrigins = [
 const devOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'https://b2-b-delta.vercel.app/',
+  'https://b2-b-7huw.vercel.app/'
 ];
 
 const allowedOrigins = new Set([
