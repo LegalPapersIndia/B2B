@@ -46,6 +46,34 @@ export function AuthProvider({ children }) {
   const [localToken, setLocalToken] = useState(() => localStorage.getItem(LOCAL_TOKEN_KEY) || '');
   const [localUser, setLocalUser] = useState(null);
   const [localLoaded, setLocalLoaded] = useState(false);
+  const [backendUser, setBackendUser] = useState(null);
+
+  const fetchBackendProfile = async (explicitToken) => {
+    const token = explicitToken || localToken || await getClerkToken();
+    if (!token) return null;
+
+    const res = await axios.get(`${API_BASE_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return res.data?.user || null;
+  };
+
+  const refreshProfile = async (explicitToken) => {
+    const profile = await fetchBackendProfile(explicitToken);
+
+    if (localToken || explicitToken) {
+      setLocalUser(profile);
+    }
+
+    setBackendUser(profile);
+
+    if (!localToken && typeof clerkUser?.reload === 'function') {
+      await clerkUser.reload();
+    }
+
+    return profile;
+  };
 
   useEffect(() => {
     const bootstrapLocalSession = async () => {
@@ -56,14 +84,14 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        const res = await axios.get(`${API_BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${localToken}` },
-        });
-        setLocalUser(res.data?.user || null);
+        const profile = await fetchBackendProfile(localToken);
+        setLocalUser(profile);
+        setBackendUser(profile);
       } catch (error) {
         localStorage.removeItem(LOCAL_TOKEN_KEY);
         setLocalToken('');
         setLocalUser(null);
+        setBackendUser(null);
       } finally {
         setLocalLoaded(true);
       }
@@ -72,16 +100,35 @@ export function AuthProvider({ children }) {
     bootstrapLocalSession();
   }, [localToken]);
 
+  useEffect(() => {
+    const bootstrapClerkProfile = async () => {
+      if (!clerkLoaded) return;
+
+      if (!clerkSignedIn) {
+        setBackendUser(null);
+        return;
+      }
+
+      try {
+        const profile = await fetchBackendProfile();
+        setBackendUser(profile);
+      } catch (error) {
+        console.error('Failed to fetch backend profile:', error);
+      }
+    };
+
+    bootstrapClerkProfile();
+  }, [clerkLoaded, clerkSignedIn, clerkUser?.id]);
+
   const loginWithPassword = async ({ email, password }) => {
     const res = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
     const token = res.data?.token || '';
-    const user = res.data?.user || null;
 
     localStorage.setItem(LOCAL_TOKEN_KEY, token);
     setLocalToken(token);
-    setLocalUser(user);
+    const profile = await refreshProfile(token);
 
-    return res.data;
+    return { ...res.data, user: profile };
   };
 
   const logout = async () => {
@@ -89,6 +136,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem(LOCAL_TOKEN_KEY);
       setLocalToken('');
       setLocalUser(null);
+      setBackendUser(null);
       return;
     }
 
@@ -104,16 +152,15 @@ export function AuthProvider({ children }) {
 
   const authType = localToken && localUser ? 'local' : clerkSignedIn ? 'clerk' : null;
   const user = authType === 'local' ? normalizeLocalUser(localUser) : clerkUser;
-  const backendUser = authType === 'local' ? localUser : null;
   const isSignedIn = Boolean(authType);
   const isLoaded = clerkLoaded && localLoaded;
-  const isProfileComplete =
-    authType === 'local'
-      ? localUser?.isProfileComplete === true
-      : user?.unsafeMetadata?.profileCompleted === true ||
-        (user?.unsafeMetadata?.businessName &&
-          user?.unsafeMetadata?.mobile &&
-          user?.unsafeMetadata?.address);
+  const isProfileComplete = backendUser?.isProfileComplete === true ||
+    (authType !== 'local' && (
+      user?.unsafeMetadata?.profileCompleted === true ||
+      (user?.unsafeMetadata?.businessName &&
+        user?.unsafeMetadata?.mobile &&
+        user?.unsafeMetadata?.address)
+    ));
 
   return (
     <AuthContext.Provider
@@ -127,6 +174,7 @@ export function AuthProvider({ children }) {
         getToken,
         logout,
         loginWithPassword,
+        refreshProfile,
       }}
     >
       {children}

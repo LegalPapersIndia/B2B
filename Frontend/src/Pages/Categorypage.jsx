@@ -5,7 +5,9 @@ import { ArrowLeft } from "lucide-react";
 import axios from "axios";
 import { useAppAuth } from "../context/AuthContext";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api`
+  : "http://localhost:5000/api";
 
 const categoryImageFallbacks = {
   medicine: "https://www.biopharlifesciences.co.in/public/Blogs/1735552692jpg",

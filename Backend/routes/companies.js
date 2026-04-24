@@ -38,6 +38,7 @@ function formatCompanyPayload(seller, extras = {}) {
     country: seller.country || '',
     gstNumber: seller.gstNumber || '',
     businessType: seller.businessType || '',
+    isPremium: seller.isPremium === true,
     location: buildLocation(seller),
     profileCompletedAt: seller.profileCompletedAt || null,
     createdAt: seller.createdAt || null,

@@ -83,6 +83,12 @@ export default function Companies() {
               <div className="h-2 bg-gradient-to-r from-emerald-600 to-teal-600" />
 
               <div className="p-6">
+                {company.isPremium && (
+                  <div className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-semibold mb-3">
+                    Premium Seller
+                  </div>
+                )}
+
                 <h3 className="font-bold text-2xl text-gray-900 line-clamp-2 mb-1">
                   {company.company || 'Unnamed Company'}
                 </h3>

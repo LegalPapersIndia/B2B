@@ -71,6 +71,11 @@ export default function CompanyDetail() {
         <section className="bg-white rounded-[32px] shadow-sm border border-slate-200 overflow-hidden">
           <div className="bg-gradient-to-r from-emerald-700 via-teal-600 to-cyan-600 px-8 py-10 text-white">
             <p className="text-sm uppercase tracking-[0.3em] text-emerald-100">Business Profile</p>
+            {company.isPremium && (
+              <div className="inline-flex items-center rounded-full bg-amber-300/20 border border-amber-200/40 text-amber-50 px-4 py-2 text-sm font-semibold mt-4">
+                Premium Seller
+              </div>
+            )}
             <h1 className="mt-3 text-4xl md:text-5xl font-bold">{company.company}</h1>
             <p className="mt-3 text-emerald-50 text-lg">
               {company.name ? `Primary contact: ${company.name}` : 'Registered business on our marketplace'}

@@ -4,7 +4,7 @@ import axios from "axios";
 import { useAppAuth } from "../context/AuthContext";
 
 const CompleteProfile = () => {
-  const { user, isLoaded, isSignedIn, isProfileComplete, getToken } = useAppAuth();
+  const { user, isLoaded, isSignedIn, isProfileComplete, getToken, refreshProfile } = useAppAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -20,7 +20,7 @@ const CompleteProfile = () => {
     if (!isLoaded || !isSignedIn || !user) return;
 
     if (isProfileComplete) {
-      navigate("/", { replace: true });
+      navigate("/seller-dashboard", { replace: true });
     }
   }, [isLoaded, isSignedIn, user, isProfileComplete, navigate]);
 
@@ -49,10 +49,11 @@ const CompleteProfile = () => {
       });
 
       if (res.data.success) {
+        await refreshProfile(token);
         setSuccess(true);
         setTimeout(() => {
-          navigate("/", { replace: true });
-        }, 800);
+          navigate("/seller-dashboard", { replace: true });
+        }, 300);
       }
     } catch (err) {
       console.error(err);

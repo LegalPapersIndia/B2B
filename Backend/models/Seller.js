@@ -58,6 +58,10 @@ const sellerSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  isPremium: {
+    type: Boolean,
+    default: false,
+  },
   profileCompletedAt: {
     type: Date,
     default: null,

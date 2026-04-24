@@ -13,6 +13,7 @@ function Companies() {
   const [newCompanyName, setNewCompanyName] = useState('');
   const [newCompanyEmail, setNewCompanyEmail] = useState('');
   const [newCompanyPassword, setNewCompanyPassword] = useState('');
+  const [newCompanyPremium, setNewCompanyPremium] = useState(false);
 
   const token = localStorage.getItem('adminToken');
 
@@ -51,7 +52,8 @@ function Companies() {
         body: JSON.stringify({
           company: newCompanyName.trim(),
           email: newCompanyEmail.trim(),
-          password: newCompanyPassword
+          password: newCompanyPassword,
+          isPremium: newCompanyPremium
         })
       });
 
@@ -66,6 +68,7 @@ function Companies() {
       setNewCompanyName('');
       setNewCompanyEmail('');
       setNewCompanyPassword('');
+      setNewCompanyPremium(false);
       setShowAddForm(false);
 
       fetchCompanies();
@@ -78,6 +81,7 @@ function Companies() {
   // ================= EDIT =================
   const saveEdit = async (id) => {
     const updatedName = document.getElementById('companyName').value.trim();
+    const isPremium = document.getElementById(`companyPremium_${id}`)?.checked === true;
     if (!updatedName) return alert("Company name required");
 
     try {
@@ -87,7 +91,7 @@ function Companies() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ company: updatedName })
+        body: JSON.stringify({ company: updatedName, isPremium })
       });
 
       alert("Updated!");
@@ -170,6 +174,15 @@ function Companies() {
             className="w-full border p-3 rounded-xl"
           />
 
+          <label className="flex items-center gap-3 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={newCompanyPremium}
+              onChange={(e) => setNewCompanyPremium(e.target.checked)}
+            />
+            Mark as Premium Seller
+          </label>
+
           <div className="flex gap-3">
             <button
               onClick={addCompany}
@@ -184,6 +197,7 @@ function Companies() {
                 setNewCompanyName('');
                 setNewCompanyEmail('');
                 setNewCompanyPassword('');
+                setNewCompanyPremium(false);
               }}
               className="border px-6 py-2 rounded-xl"
             >
@@ -200,6 +214,7 @@ function Companies() {
             <th className="p-4 text-left">Company</th>
             <th>Email</th>
             <th>Phone</th>
+            <th>Premium</th>
             <th className="text-center">Action</th>
           </tr>
         </thead>
@@ -221,6 +236,22 @@ function Companies() {
 
               <td>{c.email}</td>
               <td>{c.phone || '-'}</td>
+              <td>
+                {editing?._id === c._id ? (
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      id={`companyPremium_${c._id}`}
+                      type="checkbox"
+                      defaultChecked={c.isPremium === true}
+                    />
+                    <span>{c.isPremium ? 'Premium' : 'Normal'}</span>
+                  </label>
+                ) : (
+                  <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${c.isPremium ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
+                    {c.isPremium ? 'Premium Seller' : 'Standard'}
+                  </span>
+                )}
+              </td>
 
               <td className="text-center">
                 {editing?._id === c._id ? (

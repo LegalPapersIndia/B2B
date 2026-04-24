@@ -5,6 +5,11 @@ const Product = require('../models/Product');
 const Seller = require('../models/Seller');
 const mongoose = require('mongoose');
 const { requireSellerAuth } = require('../middleware/requireSellerAuth');
+const {
+  getAuthIdentityCandidates,
+  buildSellerLookupFromAuth,
+  buildSellerLookupFromStoredOwner,
+} = require('../utils/sellerIdentity');
 
 const requireAuth = requireSellerAuth;
 
@@ -21,7 +26,8 @@ function hasCompletedProfile(user) {
 
 async function requireCompletedProfile(req, res, next) {
   try {
-    const profile = await Seller.findOne({ clerkId: req.auth.userId });
+    const sellerLookup = buildSellerLookupFromAuth(req);
+    const profile = sellerLookup ? await Seller.findOne(sellerLookup) : null;
 
     if (!profile || !hasCompletedProfile(profile)) {
       return res.status(403).json({
@@ -40,7 +46,7 @@ async function requireCompletedProfile(req, res, next) {
 router.post('/', requireAuth, requireCompletedProfile, async (req, res) => {
   try {
     const { productId, message } = req.body;
-    const buyerClerkId = req.auth.userId;
+    const buyerClerkId = req.currentUserProfile?.clerkId || req.auth.userId;
     const buyerProfile = req.currentUserProfile;
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
@@ -56,7 +62,8 @@ router.post('/', requireAuth, requireCompletedProfile, async (req, res) => {
       return res.status(400).json({ error: 'You cannot enquire on your own product' });
     }
 
-    const seller = await Seller.findOne({ clerkId: product.clerkId });
+    const sellerLookup = buildSellerLookupFromStoredOwner(product.clerkId);
+    const seller = sellerLookup ? await Seller.findOne(sellerLookup) : null;
     if (!seller || !hasCompletedProfile(seller)) {
       return res.status(404).json({ error: 'Seller profile not available' });
     }
@@ -105,7 +112,7 @@ router.post('/contact-click', requireAuth, requireCompletedProfile, async (req, 
       buyerCompany: buyerCompanyInput,
       buyerWebsite: buyerWebsiteInput,
     } = req.body;
-    const buyerClerkId = req.auth.userId;
+    const buyerClerkId = req.currentUserProfile?.clerkId || req.auth.userId;
     const normalizedMethod = String(contactMethod || '').trim().toLowerCase();
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
@@ -126,8 +133,14 @@ router.post('/contact-click', requireAuth, requireCompletedProfile, async (req, 
     }
 
     const [seller, buyerProfile] = await Promise.all([
-      Seller.findOne({ clerkId: product.clerkId }),
-      Seller.findOne({ clerkId: buyerClerkId }),
+      (() => {
+        const sellerLookup = buildSellerLookupFromStoredOwner(product.clerkId);
+        return sellerLookup ? Seller.findOne(sellerLookup) : Promise.resolve(null);
+      })(),
+      (() => {
+        const buyerLookup = buildSellerLookupFromAuth(req);
+        return buyerLookup ? Seller.findOne(buyerLookup) : Promise.resolve(null);
+      })(),
     ]);
 
     if (!seller) {
@@ -195,13 +208,13 @@ router.post('/contact-click', requireAuth, requireCompletedProfile, async (req, 
 
 router.get('/my', requireAuth, async (req, res) => {
   try {
-    const sellerClerkId = req.auth.userId;
+    const sellerIdentityCandidates = getAuthIdentityCandidates(req);
 
     const enquiries = await Enquiry.find()
       .populate({
         path: 'productId',
         select: 'name price images category clerkId',
-        match: { clerkId: sellerClerkId },
+        match: { clerkId: { $in: sellerIdentityCandidates } },
       })
       .sort({ createdAt: -1 });
 
@@ -215,7 +228,7 @@ router.get('/my', requireAuth, async (req, res) => {
 
 router.patch('/my/:id/status', requireAuth, async (req, res) => {
   try {
-    const sellerClerkId = req.auth.userId;
+    const sellerIdentityCandidates = getAuthIdentityCandidates(req);
     const nextStatus = String(req.body.status || '').trim().toLowerCase();
     const allowedStatuses = ['pending', 'contacted', 'rejected', 'closed'];
 
@@ -232,7 +245,7 @@ router.patch('/my/:id/status', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Enquiry not found' });
     }
 
-    if (String(enquiry.productId.clerkId || '') !== sellerClerkId) {
+    if (!sellerIdentityCandidates.includes(String(enquiry.productId.clerkId || ''))) {
       return res.status(403).json({ error: 'You are not allowed to update this enquiry' });
     }
 

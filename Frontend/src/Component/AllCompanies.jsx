@@ -65,6 +65,12 @@ export default function AllCompanies() {
                 <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500" />
 
                 <div className="p-6">
+                  {company.isPremium && (
+                    <div className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-semibold mb-3">
+                      Premium Seller
+                    </div>
+                  )}
+
                   <h3 className="font-semibold text-xl line-clamp-2">
                     {company.company || company.companyName}
                   </h3>

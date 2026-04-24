@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
 
 const Product = require('../models/Product');
 const Enquiry = require('../models/Enquiry');
@@ -9,12 +8,8 @@ const Seller = require('../models/Seller');
 const Category = require('../models/Category');
 const CategoryRequest = require('../models/CategoryRequest');
 const { generateLocalSellerId, hashPassword } = require('../utils/sellerAuth');
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const { uploadBufferToCloudinary } = require('../utils/cloudinary');
+const { buildSellerLookupFromStoredOwner } = require('../utils/sellerIdentity');
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -26,18 +21,6 @@ const upload = multer({
     return cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
   },
 });
-
-async function uploadBufferToCloudinary(buffer) {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
-      { resource_type: 'auto' },
-      (err, uploaded) => {
-        if (err) reject(err);
-        else resolve(uploaded?.secure_url || '');
-      }
-    ).end(buffer);
-  });
-}
 
 const allowedCategories = [
   'medicine', 'cosmetics', 'personal-care', 'food', 'beverages',
@@ -154,7 +137,8 @@ async function buildCategoryPayload(req) {
 }
 
 async function getEnrichedProduct(product) {
-  const seller = await Seller.findOne({ clerkId: product.clerkId }).lean();
+  const sellerLookup = buildSellerLookupFromStoredOwner(product.clerkId);
+  const seller = sellerLookup ? await Seller.findOne(sellerLookup).lean() : null;
   return {
     ...product,
     seller: seller
@@ -363,7 +347,7 @@ router.put('/users/:id', async (req, res) => {
   try {
     const allowed = [
       'name', 'email', 'phone', 'company', 'website', 'address',
-      'city', 'state', 'country', 'gstNumber', 'profileCompletedAt',
+      'city', 'state', 'country', 'gstNumber', 'profileCompletedAt', 'isPremium',
     ];
 
     const updateData = {};
@@ -373,6 +357,7 @@ router.put('/users/:id', async (req, res) => {
 
     if (updateData.email) updateData.email = String(updateData.email).trim().toLowerCase();
     if (updateData.website) updateData.website = String(updateData.website).trim();
+    if (updateData.isPremium !== undefined) updateData.isPremium = Boolean(updateData.isPremium);
 
     const updated = await Seller.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
@@ -391,7 +376,7 @@ router.put('/users/:id', async (req, res) => {
 router.get('/companies', async (req, res) => {
   try {
     const companies = await Seller.find()
-      .select('name company email phone gstNumber address city state country createdAt')
+      .select('name company email phone gstNumber address city state country createdAt isPremium')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, companies });
@@ -439,6 +424,7 @@ router.post('/companies', async (req, res) => {
       name,
       company,
       email,
+      isPremium: req.body.isPremium === true,
       passwordHash: hashPassword(password),
       profileCompletedAt: null,
       invitedByAdminAt: new Date(),
@@ -451,6 +437,7 @@ router.post('/companies', async (req, res) => {
         _id: seller._id,
         company: seller.company,
         email: seller.email,
+        isPremium: seller.isPremium,
       },
     });
 
@@ -460,6 +447,36 @@ router.post('/companies', async (req, res) => {
       success: false,
       message: 'Failed to add company',
     });
+  }
+});
+
+router.put('/companies/:id', async (req, res) => {
+  try {
+    const updateData = {};
+
+    if (req.body.company !== undefined) updateData.company = String(req.body.company || '').trim();
+    if (req.body.name !== undefined) updateData.name = String(req.body.name || '').trim();
+    if (req.body.email !== undefined) updateData.email = String(req.body.email || '').trim().toLowerCase();
+    if (req.body.phone !== undefined) updateData.phone = String(req.body.phone || '').trim();
+    if (req.body.isPremium !== undefined) updateData.isPremium = Boolean(req.body.isPremium);
+
+    const updated = await Seller.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    }).select('name company email phone gstNumber address city state country createdAt isPremium');
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Company updated successfully',
+      company: updated,
+    });
+  } catch (err) {
+    console.error('Update company error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update company' });
   }
 });
 

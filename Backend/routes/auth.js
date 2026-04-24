@@ -4,6 +4,7 @@ const { clerkClient } = require('@clerk/clerk-sdk-node');
 const Seller = require('../models/Seller');
 const { requireSellerAuth } = require('../middleware/requireSellerAuth');
 const { createSellerToken, verifyPassword } = require('../utils/sellerAuth');
+const { buildSellerLookupFromAuth } = require('../utils/sellerIdentity');
 
 const router = express.Router();
 
@@ -39,6 +40,7 @@ function formatUserResponse(user) {
     company: user.company,
     website: user.website,
     address: user.address,
+    isPremium: user.isPremium === true,
     isProfileComplete: isProfileComplete(user),
   };
 }
@@ -99,7 +101,8 @@ router.post('/login', async (req, res) => {
 router.get('/me', requireSellerAuth, async (req, res) => {
   try {
     const sellerId = req.auth.userId;
-    let user = await Seller.findOne({ clerkId: sellerId });
+    const sellerLookup = buildSellerLookupFromAuth(req);
+    let user = sellerLookup ? await Seller.findOne(sellerLookup) : null;
 
     if (req.sellerAuth?.provider === 'local') {
       if (!user) {
@@ -166,7 +169,8 @@ router.post('/complete-profile', requireSellerAuth, async (req, res) => {
         '';
     }
 
-    const existingUser = await Seller.findOne({ clerkId: sellerId });
+    const sellerLookup = buildSellerLookupFromAuth(req);
+    const existingUser = sellerLookup ? await Seller.findOne(sellerLookup) : null;
 
     const name = String(req.body.name || req.body.fullName || req.body.businessName || clerkFullName || existingUser?.name || '').trim();
     const company = String(req.body.company || req.body.businessName || existingUser?.company || '').trim();

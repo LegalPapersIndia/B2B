@@ -34,7 +34,7 @@ const normalizeSubcategories = (subcategories) => {
 };
 
 export default function SellerDashboard() {
-  const { user, isLoaded, isSignedIn, isProfileComplete, getToken } = useAppAuth();
+  const { user, isLoaded, isSignedIn, isProfileComplete, getToken, refreshProfile } = useAppAuth();
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -263,12 +263,10 @@ export default function SellerDashboard() {
         }
       );
 
-      if (typeof user?.reload === "function") {
-        await user.reload();
-      }
-
+      await refreshProfile(token);
       await fetchBusinessProfile();
       alert("Business profile updated successfully");
+      navigate("/seller-dashboard", { replace: true });
     } catch (err) {
       console.error("Profile update error:", err);
       alert(err.response?.data?.message || "Failed to update business profile");

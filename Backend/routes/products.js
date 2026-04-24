@@ -4,14 +4,12 @@ const Product = require('../models/Product');
 const Seller = require('../models/Seller');
 const CategoryRequest = require('../models/CategoryRequest');
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
 const { requireSellerAuth } = require('../middleware/requireSellerAuth');
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const { uploadBufferToCloudinary } = require('../utils/cloudinary');
+const {
+  getAuthIdentityCandidates,
+  buildSellerLookupFromAuth,
+} = require('../utils/sellerIdentity');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
@@ -29,25 +27,14 @@ function hasCompletedProfile(user) {
   );
 }
 
-async function uploadBufferToCloudinary(buffer) {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
-      { resource_type: 'auto' },
-      (err, uploaded) => {
-        if (err) reject(err);
-        else resolve(uploaded?.secure_url || '');
-      }
-    ).end(buffer);
-  });
-}
-
 function getUploadedFiles(req, fieldName) {
   return (req.files || []).filter((file) => file.fieldname === fieldName);
 }
 
 async function requireCompletedProfile(req, res, next) {
   try {
-    const user = await Seller.findOne({ clerkId: req.auth.userId });
+    const sellerLookup = buildSellerLookupFromAuth(req);
+    const user = sellerLookup ? await Seller.findOne(sellerLookup) : null;
 
     if (!user || !hasCompletedProfile(user)) {
       return res.status(403).json({
@@ -74,8 +61,8 @@ router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req,
       return res.status(400).json({ error: 'Name, Category, Subcategory and Price are required' });
     }
 
-    const clerkId = req.auth.userId;
     const user = req.currentUserProfile;
+    const clerkId = user.clerkId || req.auth.userId;
 
     const productImageFiles = getUploadedFiles(req, 'images').slice(0, 4);
     const requestCategoryImageFile = getUploadedFiles(req, 'requestedCategoryImage')[0];
@@ -201,6 +188,7 @@ router.get('/', async (req, res) => {
               email: seller.email || '',
               phone: seller.phone || '',
               website: seller.website || '',
+              isPremium: seller.isPremium === true,
             }
           : null,
       };
@@ -214,7 +202,8 @@ router.get('/', async (req, res) => {
 
 router.get('/my', requireAuth, async (req, res) => {
   try {
-    const products = await Product.find({ clerkId: req.auth.userId }).sort({ createdAt: -1 });
+    const ownerIds = getAuthIdentityCandidates(req);
+    const products = await Product.find({ clerkId: { $in: ownerIds } }).sort({ createdAt: -1 });
     res.json(products);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -225,7 +214,8 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
   try {
     const { name, category, subcategory, otherCategory, otherSubcategory, price, moq, description } = req.body;
 
-    const product = await Product.findOne({ _id: req.params.id, clerkId: req.auth.userId });
+    const ownerIds = getAuthIdentityCandidates(req);
+    const product = await Product.findOne({ _id: req.params.id, clerkId: { $in: ownerIds } });
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -317,7 +307,8 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
 
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const deleted = await Product.findOneAndDelete({ _id: req.params.id, clerkId: req.auth.userId });
+    const ownerIds = getAuthIdentityCandidates(req);
+    const deleted = await Product.findOneAndDelete({ _id: req.params.id, clerkId: { $in: ownerIds } });
     if (!deleted) return res.status(404).json({ error: 'Product not found' });
     res.json({ success: true, message: 'Product deleted successfully' });
   } catch (err) {
@@ -342,7 +333,7 @@ router.post('/category-requests', requireAuth, requireCompletedProfile, upload.a
       return res.status(400).json({ error: 'Category is required for subcategory requests' });
     }
 
-    const clerkId = req.auth.userId;
+    const clerkId = req.currentUserProfile?.clerkId || req.auth.userId;
     const imageFile = getUploadedFiles(req, 'image')[0];
 
     let imageUrl = '';
@@ -374,8 +365,8 @@ router.post('/category-requests', requireAuth, requireCompletedProfile, upload.a
 
 router.get('/category-requests/my', requireAuth, async (req, res) => {
   try {
-    const clerkId = req.auth.userId;
-    const requests = await CategoryRequest.find({ requestedBy: clerkId }).sort({ createdAt: -1 }).lean();
+    const requestedBy = getAuthIdentityCandidates(req);
+    const requests = await CategoryRequest.find({ requestedBy: { $in: requestedBy } }).sort({ createdAt: -1 }).lean();
     res.json(requests);
   } catch (err) {
     console.error('Fetch my requests error:', err);

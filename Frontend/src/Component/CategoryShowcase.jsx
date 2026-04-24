@@ -5,7 +5,9 @@ import { ArrowRight, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAppAuth } from "../context/AuthContext";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api`
+  : "http://localhost:5000/api";
 
 export const categoriesData = [
   { slug: "medicine", name: "Medicine & Pharmaceuticals", desc: "APIs, generics and medical devices", image: "https://www.biopharlifesciences.co.in/public/Blogs/1735552692jpg" },
