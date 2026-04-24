@@ -1,5 +1,4 @@
-// src/components/CategoryShowcase.jsx
-import React, { useState, useEffect, useRef } from "react";   // ← useRef add kiya
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { ArrowRight, TrendingUp } from "lucide-react";
@@ -35,45 +34,31 @@ export default function CategoryShowcase() {
   const { isSignedIn, isProfileComplete } = useAppAuth();
   const navigate = useNavigate();
 
-  const [allCategories, setAllCategories] = useState([]);
+  const [allCategories, setAllCategories] = useState(categoriesData);
   const [categoryProducts, setCategoryProducts] = useState({});
   const [loading, setLoading] = useState(true);
-
-  const sectionRefs = useRef({});
 
   useEffect(() => {
     fetchAllCategories();
   }, []);
 
-const fetchAllCategories = async () => {
+  const fetchAllCategories = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`);
-
-      if (res.data.success && res.data.categories) {
-        const merged = res.data.categories.map((cat) => {
-          const slug = String(cat.name || '').toLowerCase().trim();
-          const fallback = categoryMetaMap.get(slug);
-
+      if (res.data.success) {
+        const merged = (res.data.categories || []).map((cat) => {
+          const fallback = categoryMetaMap.get(cat.name);
           return {
-            slug,
-            name: fallback?.name || cat.name || slug,
-            desc: cat.description || fallback?.desc || "Premium quality products available",
-            image: cat.image 
-              ? (cat.image.startsWith('http') ? cat.image : `${API_BASE_URL.replace('/api', '')}${cat.image}`)
-              : (fallback?.image || "https://picsum.photos/id/20/600/400"),
+            slug: cat.name,
+            name: fallback?.name || cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
+            desc: cat.description || fallback?.desc || "Premium quality products",
+            image: cat.image ? (cat.image.startsWith('http') ? cat.image : `${API_BASE_URL.replace('/api', '')}${cat.image}`) : (fallback?.image || "https://picsum.photos/id/20/600/400"),
           };
         });
 
-        // Merge with defaults jo backend mein nahi hain
-        const backendSlugs = new Set(merged.map(c => c.slug));
-        const missingDefaults = categoriesData.filter(c => !backendSlugs.has(c.slug));
-
-        setAllCategories([...merged, ...missingDefaults]);
-      } else {
-        setAllCategories(categoriesData);
+        setAllCategories(merged);
       }
-    } catch (err) {
-      console.warn("Backend categories fetch failed, using defaults");
+    } catch {
       setAllCategories(categoriesData);
     }
   };
@@ -100,8 +85,7 @@ const fetchAllCategories = async () => {
         productsMap[slug] = products;
       });
       setCategoryProducts(productsMap);
-    } catch (err) {
-      console.error("Error fetching products:", err);
+    } catch {
       setCategoryProducts({});
     } finally {
       setLoading(false);
@@ -129,22 +113,6 @@ const fetchAllCategories = async () => {
 
   const handleViewAll = (slug) => navigate(`/category/${slug}`);
 
-  // Scroll function (called from Sidebar)
-  const scrollToCategory = (slug) => {
-    const element = sectionRefs.current[slug];
-    if (element) {
-      element.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  };
-
-  // Optional: Make it globally accessible
-  useEffect(() => {
-    window.scrollToCategory = scrollToCategory;
-  }, []);
-
   return (
     <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-12 bg-gray-50/50">
       <div className="mb-12">
@@ -162,14 +130,11 @@ const fetchAllCategories = async () => {
           return (
             <motion.section
               key={category.slug}
-              id={`category-${category.slug}`}
-              ref={(el) => (sectionRefs.current[category.slug] = el)}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="scroll-mt-20"
+              className="scroll-mt-16"
             >
-              {/* Category Banner */}
               <div className="relative h-[260px] md:h-[300px] rounded-2xl overflow-hidden shadow-md mb-8 group">
                 <img
                   src={category.image}
@@ -194,42 +159,39 @@ const fetchAllCategories = async () => {
                 </div>
               </div>
 
-              {/* Products Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {loading ? (
-                  <div className="col-span-full text-center py-10 text-gray-500">Loading products...</div>
-                ) : (
-                  products.slice(0, 5).map((product, i) => (
-                    <motion.div
-                      key={product._id}
-                      initial={{ opacity: 0, y: 15 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all"
-                    >
-                      <div className="relative aspect-square overflow-hidden bg-slate-100">
-                        <img
-                          src={product.images?.[0] || "https://picsum.photos/id/20/600/400"}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h5 className="font-semibold line-clamp-2 mb-1">{product.name}</h5>
-                        <p className="text-xs text-slate-500 mb-2">by {product.sellerCompany || "Unknown Supplier"}</p>
-                        <p className="text-lg font-bold">Rs {product.price?.toLocaleString("en-IN")}</p>
-                        <p className="text-xs text-slate-500 mt-1">Subcategory: {product.subcategory || "N/A"}</p>
+                {loading
+                  ? []
+                  : products.slice(0, 5).map((product, i) => (
+                      <motion.div
+                        key={product._id}
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all"
+                      >
+                        <div className="relative aspect-square overflow-hidden bg-slate-100">
+                          <img
+                            src={product.images?.[0] || "https://picsum.photos/id/20/600/400"}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                          />
+                        </div>
+                        <div className="p-4">
+                          <h5 className="font-semibold line-clamp-2 mb-1">{product.name}</h5>
+                          <p className="text-xs text-slate-500 mb-2">by {product.sellerCompany || "Unknown Supplier"}</p>
+                          <p className="text-lg font-bold">Rs {product.price?.toLocaleString("en-IN")}</p>
+                          <p className="text-xs text-slate-500 mt-1">Subcategory: {product.subcategory || "N/A"}</p>
 
-                        <button
-                          onClick={() => handleExploreSubcategory(product)}
-                          className="mt-3 w-full py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all"
-                        >
-                          Explore Subcategory
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
+                          <button
+                            onClick={() => handleExploreSubcategory(product)}
+                            className="mt-3 w-full py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all"
+                          >
+                            Explore Subcategory
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
               </div>
             </motion.section>
           );
