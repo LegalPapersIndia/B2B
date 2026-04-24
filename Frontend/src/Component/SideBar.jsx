@@ -3,11 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Search, Factory } from 'lucide-react';
-import { 
-  FaPills, FaGem, FaBaby, FaUtensils, FaGlassCheers, 
-  FaCandyCane, FaShoppingBasket, FaHardHat, FaTshirt, 
-  FaMicrochip, FaCar, FaTools, FaLeaf, FaPaw 
-} from 'react-icons/fa';
+import { FaPills, FaGem, FaBaby, FaUtensils, FaGlassCheers, FaCandyCane, FaShoppingBasket, FaHardHat, FaTshirt, FaMicrochip, FaCar, FaTools, FaLeaf, FaPaw } from 'react-icons/fa';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
   ? `${import.meta.env.VITE_API_BASE_URL}/api` 
@@ -44,34 +40,35 @@ export default function Sidebar() {
     fetchAllCategories();
   }, []);
 
-  const fetchAllCategories = async () => {
+const fetchAllCategories = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`);
 
-      if (res.data.success) {
-        const backendNames = res.data.categories.map(c => c.name.toLowerCase());
+      if (res.data.success && Array.isArray(res.data.categories)) {
+        const backendCats = res.data.categories.map(cat => {
+          const slug = String(cat.name || '').toLowerCase().trim();
+          const defaultCat = defaultCategories.find(d => d.slug === slug);
 
-        const combined = [...defaultCategories];
-
-        backendNames.forEach(name => {
-          if (!combined.some(cat => cat.slug === name)) {
-            combined.push({
-              name: name.charAt(0).toUpperCase() + name.slice(1),
-              desc: "Premium products available",
-              slug: name,
-              icon: <Factory size={28} className="text-slate-600" />,
-              count: 0,
-              popular: false,
-            });
-          }
+          return {
+            ... (defaultCat || {}),
+            name: cat.name || defaultCat?.name || slug,
+            desc: cat.description || defaultCat?.desc || "Premium products available",
+            slug,
+            icon: defaultCat?.icon || <Factory size={28} className="text-slate-600" />,
+            count: defaultCat?.count || 0,
+            popular: defaultCat?.popular || false,
+          };
         });
+        // Add defaults jo backend mein nahi hain
+        const backendSlugs = new Set(backendCats.map(c => c.slug));
+        const missing = defaultCategories.filter(d => !backendSlugs.has(d.slug));
 
-        setCategories(combined);
+        setCategories([...backendCats, ...missing]);
       } else {
         setCategories(defaultCategories);
       }
     } catch (err) {
-      console.warn("Failed to fetch categories from backend, using defaults");
+      console.warn("Using default categories only");
       setCategories(defaultCategories);
     } finally {
       setLoading(false);

@@ -35,37 +35,45 @@ export default function CategoryShowcase() {
   const { isSignedIn, isProfileComplete } = useAppAuth();
   const navigate = useNavigate();
 
-  const [allCategories, setAllCategories] = useState(categoriesData);
+  const [allCategories, setAllCategories] = useState([]);
   const [categoryProducts, setCategoryProducts] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // For smooth scrolling from Sidebar
   const sectionRefs = useRef({});
 
   useEffect(() => {
     fetchAllCategories();
   }, []);
 
-  const fetchAllCategories = async () => {
+const fetchAllCategories = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`);
-      if (res.data.success) {
-        const merged = (res.data.categories || []).map((cat) => {
-          const fallback = categoryMetaMap.get(cat.name);
+
+      if (res.data.success && res.data.categories) {
+        const merged = res.data.categories.map((cat) => {
+          const slug = String(cat.name || '').toLowerCase().trim();
+          const fallback = categoryMetaMap.get(slug);
+
           return {
-            slug: cat.name,
-            name: fallback?.name || cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
-            desc: cat.description || fallback?.desc || "Premium quality products",
+            slug,
+            name: fallback?.name || cat.name || slug,
+            desc: cat.description || fallback?.desc || "Premium quality products available",
             image: cat.image 
-              ? (cat.image.startsWith('http') ? cat.image : `${API_BASE_URL.replace('/api', '')}${cat.image}`) 
+              ? (cat.image.startsWith('http') ? cat.image : `${API_BASE_URL.replace('/api', '')}${cat.image}`)
               : (fallback?.image || "https://picsum.photos/id/20/600/400"),
           };
         });
 
-        setAllCategories(merged);
+        // Merge with defaults jo backend mein nahi hain
+        const backendSlugs = new Set(merged.map(c => c.slug));
+        const missingDefaults = categoriesData.filter(c => !backendSlugs.has(c.slug));
+
+        setAllCategories([...merged, ...missingDefaults]);
+      } else {
+        setAllCategories(categoriesData);
       }
     } catch (err) {
-      console.warn("Using fallback categories");
+      console.warn("Backend categories fetch failed, using defaults");
       setAllCategories(categoriesData);
     }
   };
