@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { ArrowRight, TrendingUp } from "lucide-react";
-import { useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { useAppAuth } from "../context/AuthContext";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
@@ -31,7 +31,7 @@ export const categoriesData = [
 const categoryMetaMap = new Map(categoriesData.map((item) => [item.slug, item]));
 
 export default function CategoryShowcase() {
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, isProfileComplete } = useAppAuth();
   const navigate = useNavigate();
 
   const [allCategories, setAllCategories] = useState(categoriesData);
@@ -102,10 +102,6 @@ export default function CategoryShowcase() {
       navigate("/login");
       return;
     }
-
-    const isProfileComplete =
-      user?.unsafeMetadata?.profileCompleted === true ||
-      (user?.unsafeMetadata?.businessName && user?.unsafeMetadata?.mobile && user?.unsafeMetadata?.address);
 
     if (!isProfileComplete) {
       navigate("/complete-profile");

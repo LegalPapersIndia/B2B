@@ -5,7 +5,7 @@ const Seller = require('../models/Seller');
 const CategoryRequest = require('../models/CategoryRequest');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
-const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
+const { requireSellerAuth } = require('../middleware/requireSellerAuth');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -16,9 +16,7 @@ cloudinary.config({
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
-const requireAuth = ClerkExpressRequireAuth({
-  onError: (err, req, res) => res.status(401).json({ error: 'Unauthorized' }),
-});
+const requireAuth = requireSellerAuth;
 
 function hasCompletedProfile(user) {
   return !!(
@@ -386,4 +384,3 @@ router.get('/category-requests/my', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
-

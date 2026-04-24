@@ -7,6 +7,11 @@ const sellerSchema = new mongoose.Schema({
     unique: true,
     index: true,
   },
+  authProvider: {
+    type: String,
+    enum: ['clerk', 'local'],
+    default: 'clerk',
+  },
   name: {
     type: String,
     trim: true,
@@ -44,6 +49,15 @@ const sellerSchema = new mongoose.Schema({
   state: String,
   country: String,
   gstNumber: String,
+  passwordHash: {
+    type: String,
+    default: '',
+    select: false,
+  },
+  invitedByAdminAt: {
+    type: Date,
+    default: null,
+  },
   profileCompletedAt: {
     type: Date,
     default: null,

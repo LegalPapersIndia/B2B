@@ -15,7 +15,8 @@ import {
   FaUserCircle,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
+import { UserButton } from "@clerk/clerk-react";
+import { useAppAuth } from "../context/AuthContext";
 
 const Navbar = () => {
   const [countries, setCountries] = useState([]);
@@ -39,7 +40,7 @@ const Navbar = () => {
     city: "",
   });
 
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn, authType, logout } = useAppAuth();
 
   // 1. Load all countries once
   useEffect(() => {
@@ -194,7 +195,7 @@ const Navbar = () => {
 
             {/* Actions - Login / User */}
             <div className="flex items-center gap-2 sm:gap-4">
-              <SignedOut>
+              {!isSignedIn && (
                 <Link
                   to="/login"
                   className="hidden sm:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors text-sm"
@@ -202,11 +203,10 @@ const Navbar = () => {
                   <FaUserCircle className="text-lg" />
                   Login
                 </Link>
-              </SignedOut>
+              )}
 
-<SignedIn>
+{isSignedIn && (
   <div className="flex items-center gap-4">
-    {/* Seller Dashboard Button */}
     <Link
       to="/seller-dashboard"
       className="hidden md:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all text-sm"
@@ -218,15 +218,25 @@ const Navbar = () => {
     <span className="hidden sm:block text-sm font-medium text-gray-700">
       Hi, {user?.firstName || "User"}
     </span>
-    
-    <UserButton 
-      afterSignOutUrl="/" 
-      appearance={{
-        elements: { avatarBox: "w-9 h-9" }
-      }}
-    />
+
+    {authType === "clerk" ? (
+      <UserButton
+        afterSignOutUrl="/"
+        appearance={{
+          elements: { avatarBox: "w-9 h-9" }
+        }}
+      />
+    ) : (
+      <button
+        type="button"
+        onClick={logout}
+        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+      >
+        Logout
+      </button>
+    )}
   </div>
-</SignedIn>
+)}
 
               {/* Mobile Menu Button */}
               <button
@@ -329,11 +339,11 @@ const Navbar = () => {
             </button>
 
             {/* Mobile Login (when signed out) */}
-            <SignedOut>
+            {!isSignedIn && (
               <button className="sm:hidden mt-2 border-2 border-indigo-600 text-indigo-600 py-2.5 rounded-lg font-bold w-full">
                 <Link to="/login">Login / Register</Link>
               </button>
-            </SignedOut>
+            )}
           </div>
         </div>
       </nav>

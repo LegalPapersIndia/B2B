@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useUser, useAuth, RedirectToSignIn } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAppAuth } from "../context/AuthContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
@@ -34,8 +34,7 @@ const normalizeSubcategories = (subcategories) => {
 };
 
 export default function SellerDashboard() {
-  const { user, isLoaded, isSignedIn } = useUser();
-  const { getToken } = useAuth();
+  const { user, isLoaded, isSignedIn, isProfileComplete, getToken } = useAppAuth();
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -75,9 +74,6 @@ export default function SellerDashboard() {
   const [requestedSubcategoryPreview, setRequestedSubcategoryPreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
-  const isProfileComplete = user?.unsafeMetadata?.profileCompleted === true ||
-                           (user?.unsafeMetadata?.businessName && user?.unsafeMetadata?.mobile && user?.unsafeMetadata?.address);
-
   const selectedCategoryData = useMemo(() => {
     return allCategories.find((cat) => cat.name === form.category) || null;
   }, [allCategories, form.category]);
@@ -96,6 +92,12 @@ export default function SellerDashboard() {
       fetchMyRequests();
     }
   }, [isLoaded, isSignedIn]);
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      navigate('/login', { replace: true });
+    }
+  }, [isLoaded, isSignedIn, navigate]);
 
   if (isLoaded && isSignedIn && !isProfileComplete) {
     return (
@@ -128,7 +130,7 @@ export default function SellerDashboard() {
   }
 
   if (!isSignedIn) {
-    return <RedirectToSignIn />;
+    return <div className="min-h-screen flex items-center justify-center text-xl bg-gray-50">Redirecting...</div>;
   }
 
   const fetchAllCategories = async () => {
@@ -1005,4 +1007,3 @@ export default function SellerDashboard() {
     </div>
   );
 }
-

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import axios from "axios";
-import { useUser } from "@clerk/clerk-react";
+import { useAppAuth } from "../context/AuthContext";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
@@ -31,7 +31,7 @@ const categoryImageFallbacks = {
 export default function CategoryPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, isProfileComplete } = useAppAuth();
 
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState(null);
@@ -82,10 +82,6 @@ export default function CategoryPage() {
       navigate("/login");
       return;
     }
-
-    const isProfileComplete =
-      user?.unsafeMetadata?.profileCompleted === true ||
-      (user?.unsafeMetadata?.businessName && user?.unsafeMetadata?.mobile && user?.unsafeMetadata?.address);
 
     if (!isProfileComplete) {
       navigate("/complete-profile");

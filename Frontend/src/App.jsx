@@ -1,7 +1,6 @@
 // src/App.jsx
 import React, { useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
 
 import Navbar from './Component/Navbar';
 import Home from './Pages/Home';
@@ -24,30 +23,31 @@ import ScrollToTop from './Component/ScrollToTop';
 import CompleteProfile from './Pages/CompleteProfile';
 import CompaniesPage from './Pages/Company';
 import CompanyDetail from './Pages/CompanyDetail';
+import { useAppAuth } from './context/AuthContext.jsx';
 
 function AppContent() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn, isProfileComplete } = useAppAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
-
-    const metadata = user.unsafeMetadata || {};
-    const isProfileComplete = metadata.profileCompleted === true ||
-      (metadata.businessName && metadata.mobile && metadata.address);
+    if (!isLoaded || !isSignedIn || !user) return;
 
     // If profile not complete, redirect to complete-profile
     if (!isProfileComplete) {
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/complete-profile' && currentPath !== '/sso-callback' && currentPath !== '/signup') {
-        navigate('/complete-profile', { replace: true });
-        return;
-      }
-    }
+  const allowedPaths = [
+    '/complete-profile',
+    '/login',
+    '/signup',
+    '/sso-callback'
+  ];
 
+  if (!allowedPaths.includes(window.location.pathname)) {
+    navigate('/complete-profile', { replace: true });
+  }
+}
     // Profile complete - user can access all pages
     // No role-based redirects needed
-  }, [isLoaded, user, navigate]);
+  }, [isLoaded, isSignedIn, isProfileComplete, user, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 antialiased overflow-x-hidden">

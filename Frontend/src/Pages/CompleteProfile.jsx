@@ -1,12 +1,10 @@
-// src/pages/CompleteProfile.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser, useAuth } from "@clerk/clerk-react";
 import axios from "axios";
+import { useAppAuth } from "../context/AuthContext";
 
 const CompleteProfile = () => {
-  const { user, isLoaded, isSignedIn } = useUser();
-  const { getToken } = useAuth();
+  const { user, isLoaded, isSignedIn, isProfileComplete, getToken } = useAppAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -18,17 +16,13 @@ const CompleteProfile = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Check if profile is already complete
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user) return;
 
-    const metadata = user.unsafeMetadata || {};
-
-    if (metadata.profileCompleted || 
-        (metadata.businessName && metadata.mobile && metadata.address)) {
-      navigate("/"); // already complete → home
+    if (isProfileComplete) {
+      navigate("/", { replace: true });
     }
-  }, [isLoaded, isSignedIn, user, navigate]);
+  }, [isLoaded, isSignedIn, user, isProfileComplete, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,7 +34,7 @@ const CompleteProfile = () => {
     setSuccess(false);
 
     if (!formData.businessName || !formData.mobile || !formData.address) {
-      setError("Sab fields bharna zaroori hai");
+      setError("All fields are required");
       return;
     }
 
@@ -51,12 +45,11 @@ const CompleteProfile = () => {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
       const res = await axios.post(`${API_BASE_URL}/api/auth/complete-profile`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.data.success) {
         setSuccess(true);
-        // Immediate redirect after brief success indication
         setTimeout(() => {
           navigate("/", { replace: true });
         }, 800);
@@ -82,7 +75,7 @@ const CompleteProfile = () => {
       <div className="w-full max-w-md bg-white shadow-2xl rounded-3xl p-8">
         <h2 className="text-3xl font-bold text-center mb-2">Complete Your Business Profile</h2>
         <p className="text-center text-gray-600 mb-8">
-          B2B platform use karne ke liye business details zaroori hain
+          Add your business details before you start sending enquiries or adding products
         </p>
 
         {error && (

@@ -8,6 +8,7 @@ const Enquiry = require('../models/Enquiry');
 const Seller = require('../models/Seller');
 const Category = require('../models/Category');
 const CategoryRequest = require('../models/CategoryRequest');
+const { generateLocalSellerId, hashPassword } = require('../utils/sellerAuth');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -400,6 +401,68 @@ router.get('/companies', async (req, res) => {
   }
 });
 
+router.post('/companies', async (req, res) => {
+  try {
+    const company = String(req.body.company || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
+    const name = String(req.body.name || company || '').trim();
+
+    // ✅ VALIDATION
+    if (!company || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Company, email and password are required',
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters',
+      });
+    }
+
+    // ✅ CHECK EXISTING USER
+    const existing = await Seller.findOne({ email });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'Email already exists',
+      });
+    }
+
+    // ✅ CREATE SELLER (LOCAL AUTH)
+    const seller = await Seller.create({
+      clerkId: generateLocalSellerId(),   // 🔥 IMPORTANT
+      authProvider: 'local',
+      name,
+      company,
+      email,
+      passwordHash: hashPassword(password),
+      profileCompletedAt: null,
+      invitedByAdminAt: new Date(),
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Company created successfully',
+      seller: {
+        _id: seller._id,
+        company: seller.company,
+        email: seller.email,
+      },
+    });
+
+  } catch (err) {
+    console.error('Add company error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add company',
+    });
+  }
+});
+
 router.get('/products', async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 }).lean();
@@ -717,5 +780,30 @@ router.put('/category-requests/:id/reject', async (req, res) => {
   }
 });
 
-module.exports = router;
+// DELETE COMPANY
+router.delete('/companies/:id', async (req, res) => {
+  try {
+    const seller = await Seller.findByIdAndDelete(req.params.id);
 
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Company deleted successfully'
+    });
+
+  } catch (err) {
+    console.error('Delete company error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete company'
+    });
+  }
+});
+
+module.exports = router;

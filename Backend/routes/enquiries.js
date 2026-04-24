@@ -4,12 +4,9 @@ const Enquiry = require('../models/Enquiry');
 const Product = require('../models/Product');
 const Seller = require('../models/Seller');
 const mongoose = require('mongoose');
+const { requireSellerAuth } = require('../middleware/requireSellerAuth');
 
-const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
-
-const requireAuth = ClerkExpressRequireAuth({
-  onError: (err, req, res) => res.status(401).json({ error: 'Unauthorized' }),
-});
+const requireAuth = requireSellerAuth;
 
 function hasCompletedProfile(user) {
   return !!(
@@ -97,7 +94,7 @@ router.post('/', requireAuth, requireCompletedProfile, async (req, res) => {
   }
 });
 
-router.post('/contact-click', requireAuth, async (req, res) => {
+router.post('/contact-click', requireAuth, requireCompletedProfile, async (req, res) => {
   try {
     const {
       productId,
