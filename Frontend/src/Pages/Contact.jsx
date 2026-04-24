@@ -43,7 +43,7 @@ const ContactUs = () => {
     }, 1500);
   };
 
-  const whatsappLink = `https://wa.me/+917505266931?text=${encodeURIComponent("Hello! I'd like to inquire about B2B Portal services.")}`;
+  const whatsappLink = `https://wa.me/+919211037448?text=${encodeURIComponent("Hello! I'd like to inquire about B2B Portal services.")}`;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] py-16 lg:py-24 selection:bg-indigo-100">
@@ -86,8 +86,8 @@ const ContactUs = () => {
             <ContactInfoCard 
               icon={<FaPhoneAlt />} 
               title="Call Us" 
-              detail="+91 75052 66931" 
-              link="tel:+917505266931"
+              detail="+91 9211037448" 
+              link="tel:+919211037448"
               color="bg-emerald-50 text-emerald-600"
             />
             <ContactInfoCard 
