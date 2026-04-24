@@ -11,7 +11,6 @@ import PrivacyPolicy from './Pages/Privacy';
 import RefundPolicy from './Pages/Refund';
 import HelpCenter from './Pages/HelpCenter';
 import Blog from './Pages/Blog';
-import SignupPage from './Pages/Signup';
 import LoginPage from './Pages/LoginPage';
 import SsoCallback from './Pages/SsoCallback';
 import SellerDashboard from './Pages/SellerDashboard';
@@ -25,6 +24,7 @@ import CompaniesPage from './Pages/Company';
 import CompanyDetail from './Pages/CompanyDetail';
 import { useAppAuth } from './context/AuthContext.jsx';
 
+
 function AppContent() {
   const { user, isLoaded, isSignedIn, isProfileComplete } = useAppAuth();
   const navigate = useNavigate();
@@ -37,7 +37,6 @@ function AppContent() {
   const allowedPaths = [
     '/complete-profile',
     '/login',
-    '/signup',
     '/sso-callback'
   ];
 
@@ -68,8 +67,6 @@ function AppContent() {
           <Route path="/category/:slug/subcategory/:subslug" element={<SubcategoryPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/company/:id" element={<CompanyDetail />} />
-          
-          <Route path="/signup" element={<SignupPage />} />
           <Route path="/complete-profile" element={<CompleteProfile />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/sso-callback" element={<SsoCallback />} />

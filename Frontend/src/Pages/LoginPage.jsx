@@ -126,6 +126,13 @@ const LoginPage = () => {
           <FaGoogle className="text-red-500 text-2xl" />
           {googleLoading ? "Connecting to Google..." : "Sign In with Google"}
         </button>
+
+        <p className="text-center text-sm mt-8 text-gray-600">
+          Need a new company account?{" "}
+          <Link to="/contact" className="text-indigo-600 font-semibold hover:underline">
+            Want to list your company
+          </Link>
+        </p>
       </div>
     </div>
   );
