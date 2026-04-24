@@ -46,10 +46,10 @@ export default function Sidebar() {
 
   const fetchAllCategories = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/categories`);   // ← Public Route
+      const res = await axios.get(`${API_BASE_URL}/categories`);
 
       if (res.data.success) {
-        const backendNames = res.data.categories.map(c => c.name);
+        const backendNames = res.data.categories.map(c => c.name.toLowerCase());
 
         const combined = [...defaultCategories];
 
@@ -67,9 +67,11 @@ export default function Sidebar() {
         });
 
         setCategories(combined);
+      } else {
+        setCategories(defaultCategories);
       }
     } catch (err) {
-      console.warn("Using only default categories");
+      console.warn("Failed to fetch categories from backend, using defaults");
       setCategories(defaultCategories);
     } finally {
       setLoading(false);
@@ -82,26 +84,43 @@ export default function Sidebar() {
   );
 
   const handleCategoryClick = (slug) => {
-    document.getElementById(`category-${slug}`)?.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'start' 
-    });
     setActiveCategory(slug);
+
+    // Scroll to the corresponding section in CategoryShowcase
+    const targetElement = document.getElementById(`category-${slug}`);
+
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    } else {
+      // Fallback: Scroll to top if section not found
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
   };
 
   if (loading) {
-    return <aside className="w-full h-screen flex items-center justify-center bg-slate-50">Loading categories...</aside>;
+    return (
+      <aside className="w-full h-screen flex items-center justify-center bg-slate-50">
+        Loading categories...
+      </aside>
+    );
   }
 
   return (
-    <aside className="w-full h-screen flex flex-col bg-gradient-to-b from-slate-50 to-white border-r border-slate-200">
-      {/* Header + Search - Same as before */}
-      <div className="p-6 border-b">
+    <aside className="w-full h-screen flex flex-col bg-gradient-to-b from-slate-50 to-white border-r border-slate-200 overflow-hidden">
+      
+      {/* Header + Search */}
+      <div className="p-6 border-b bg-white sticky top-0 z-10">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
             <Factory className="text-white" size={24} />
           </div>
-          <h2 className="font-bold text-xl">Categories</h2>
+          <h2 className="font-bold text-xl text-gray-900">Categories</h2>
         </div>
 
         <div className="relative">
@@ -110,32 +129,50 @@ export default function Sidebar() {
             placeholder="Search categories..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:border-emerald-500"
+            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm"
           />
           <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {filteredCategories.map((cat) => (
-          <motion.div
-            key={cat.slug}
-            whileHover={{ scale: 1.02 }}
-            onClick={() => handleCategoryClick(cat.slug)}
-          >
-            <div className={`cursor-pointer rounded-xl p-4 flex gap-4 border transition-all ${
-              activeCategory === cat.slug ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300'
-            }`}>
-              <div className="text-3xl w-14 h-14 flex items-center justify-center bg-white rounded-lg shadow-sm">
-                {cat.icon}
+      {/* Categories List */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+        {filteredCategories.length === 0 ? (
+          <div className="text-center py-10 text-gray-500">
+            No categories found
+          </div>
+        ) : (
+          filteredCategories.map((cat) => (
+            <motion.div
+              key={cat.slug}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleCategoryClick(cat.slug)}
+              className="cursor-pointer"
+            >
+              <div className={`rounded-2xl p-4 flex gap-4 border transition-all duration-200 ${
+                activeCategory === cat.slug 
+                  ? 'border-emerald-500 bg-emerald-50 shadow-sm' 
+                  : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+              }`}>
+                <div className="text-3xl w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm flex-shrink-0">
+                  {cat.icon}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 leading-tight">{cat.name}</h3>
+                  <p className="text-xs text-gray-600 line-clamp-2 mt-1">{cat.desc}</p>
+                  
+                  {cat.count > 0 && (
+                    <p className="text-[10px] text-emerald-600 font-medium mt-2">
+                      {cat.count} products
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold">{cat.name}</h3>
-                <p className="text-xs text-gray-600 line-clamp-2">{cat.desc}</p>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          ))
+        )}
       </div>
     </aside>
   );

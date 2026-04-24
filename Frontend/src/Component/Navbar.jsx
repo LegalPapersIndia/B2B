@@ -335,7 +335,7 @@ const Navbar = () => {
             {/* Search Button */}
             <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
               <FaSearch className="hidden lg:inline" />
-              <span>Search B2B</span>
+              <span>Search</span>
             </button>
 
             {/* Mobile Login (when signed out) */}
