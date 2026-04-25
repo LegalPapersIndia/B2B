@@ -244,7 +244,7 @@ function Companies() {
                       type="checkbox"
                       defaultChecked={c.isPremium === true}
                     />
-                    <span>{c.isPremium ? 'Premium' : 'Normal'}</span>
+                    <span>{c.isPremium ? 'Premium' : 'Premium'}</span>
                   </label>
                 ) : (
                   <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${c.isPremium ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
