@@ -651,8 +651,8 @@ export default function SellerDashboard() {
 
                     <div className="md:col-span-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
                       {form.category === 'other'
-                        ? 'New category request super admin ke paas jayegi aur approval ke baad category add hogi. Images optional hai.'
-                        : 'Missing subcategory request super admin ke paas jayegi. Final subcategory image super admin approve karega.'}
+                        ? 'New category request sending to super admin for approval.'
+                        : 'Missing subcategory request will be sent to super admin. Final subcategory image will be approved by super admin.'}
                     </div>
                   </div>
                 )}
@@ -892,7 +892,7 @@ export default function SellerDashboard() {
                 {profileForm.businessName || user?.unsafeMetadata?.businessName || "Your Business"}
               </h2>
               <p className="text-gray-600 mt-3">
-                Yahin se aap apna business name, mail id, phone number, address aur website update kar sakte ho.
+                You can update your business profile information here.
               </p>
 
               <div className="mt-8 space-y-5">
@@ -913,7 +913,7 @@ export default function SellerDashboard() {
                   <p className="text-lg font-semibold text-gray-900 mt-1 whitespace-pre-line">{profileForm.address || "-"}</p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
-                  <p className="text-sm text-gray-500">Website</p>
+                  <p className="text-sm text-gray-500">Website (Optional)</p>
                   <p className="text-lg font-semibold text-gray-900 mt-1 break-all">{profileForm.website || "-"}</p>
                 </div>
               </div>
@@ -922,7 +922,7 @@ export default function SellerDashboard() {
             <div className="bg-white rounded-3xl shadow-xl p-8">
               <h2 className="text-2xl font-semibold mb-2">Edit Business Profile</h2>
               <p className="text-gray-600 mb-8">
-                Jo details buyers aur admins dekhte hain, unko yahan se update kar lo.
+                You can update your business profile information here.
               </p>
 
               {profileLoading ? (
