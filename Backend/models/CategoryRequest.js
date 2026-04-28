@@ -1,6 +1,4 @@
-// models/CategoryRequest.js
 const mongoose = require('mongoose');
-
 const categoryRequestSchema = new mongoose.Schema({
   type: {
     type: String,
@@ -28,11 +26,10 @@ const categoryRequestSchema = new mongoose.Schema({
     type: String,
     trim: true,
     lowercase: true,
-    // For subcategory requests, the parent category name
   },
   requestedBy: {
     type: String,
-    required: true // Clerk ID
+    required: true
   },
   status: {
     type: String,
@@ -47,5 +44,4 @@ const categoryRequestSchema = new mongoose.Schema({
     trim: true
   }
 }, { timestamps: true });
-
 module.exports = mongoose.model('CategoryRequest', categoryRequestSchema);

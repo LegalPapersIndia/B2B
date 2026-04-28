@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { MapPin, Mail, ArrowRight, Boxes, Briefcase } from 'lucide-react';
+import { MapPin, Mail, ArrowRight, Boxes, Briefcase, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
@@ -69,76 +69,99 @@ export default function AllCompanies() {
           <div className="text-center py-12 text-gray-500">Loading Sellers...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {companies.slice(0, 8).map((company, i) => (
-              <motion.div
-                key={company._id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-xl transition-all group"
-              >
-                <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500" />
+            {companies.slice(0, 8).map((company, i) => {
+              const logo = company.avatar || company.logo || company.profilePhoto;
+              const industry = company.industry || company.businessType;
 
-                <div className="p-6">
-                  {company.isPremium && (
-                    <div className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-semibold mb-3">
-                      ⭐ Premium Seller
+              return (
+                <motion.div
+                  key={company._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-xl transition-all group"
+                >
+                  <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500" />
+
+                  <div className="p-6">
+                    {/* Logo + Premium Badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      {logo ? (
+                        <img
+                          src={logo}
+                          alt={company.company}
+                          className="w-16 h-16 object-cover rounded-2xl border border-gray-200"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center border border-gray-200">
+                          <Building2 className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+
+                      {company.isPremium && (
+                        <div className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-semibold">
+                          ⭐ Premium
+                        </div>
+                      )}
                     </div>
-                  )}
 
-                  {/* Company Name */}
-                  <h3 className="font-semibold text-xl line-clamp-2">
-                    {company.company || company.companyName || company.name}
-                  </h3>
+                    {/* Company Name */}
+                    <h3 className="font-semibold text-xl line-clamp-2 mt-2">
+                      {company.company || company.companyName || company.name}
+                    </h3>
 
-                  {/* Owner Name (optional) */}
-                  {company.name && company.name !== company.company && (
-                    <p className="text-sm text-emerald-700 mt-1">by {company.name}</p>
-                  )}
+                    {/* Owner Name (optional) */}
+                    {company.name && company.name !== (company.company || company.companyName) && (
+                      <p className="text-sm text-emerald-700 mt-1">by {company.name}</p>
+                    )}
 
-                  {/* Industry / Business Type - NEW */}
-                  {company.industry || company.businessType ? (
-                    <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-2xl text-sm font-medium">
-                      <Briefcase className="w-4 h-4" />
-                      {toTitle(company.industry || company.businessType)}
+                    {/* Industry */}
+                    {industry && (
+                      <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-2xl text-sm font-medium">
+                        <Briefcase className="w-4 h-4" />
+                        {toTitle(industry)}
+                      </div>
+                    )}
+
+                    {/* Details */}
+                    <div className="mt-5 space-y-2.5 text-sm text-gray-600">
+                      {company.productCount !== undefined && company.productCount > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Boxes className="w-4 h-4" />
+                          <span>{company.productCount} products</span>
+                        </div>
+                      )}
+
+                      {company.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          <span className="truncate">{company.email}</span>
+                        </div>
+                      )}
+
+                      {company.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          {company.location}
+                        </div>
+                      )}
                     </div>
-                  ) : null}
 
-                  {/* Details */}
-                  <div className="mt-5 space-y-2.5 text-sm text-gray-600">
-                    {company.productCount !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <Boxes className="w-4 h-4" />
-                        <span>{company.productCount} products</span>
-                      </div>
-                    )}
-
-                    {company.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        <span className="truncate">{company.email}</span>
-                      </div>
-                    )}
-
-                    {company.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        {company.location}
-                      </div>
-                    )}
+                    {/* Explore Button */}
+                    <Link
+                      to={`/company/${company._id}`}
+                      className="mt-7 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-2xl font-medium transition-all active:scale-[0.98]"
+                    >
+                      Explore Products
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
                   </div>
-
-                  {/* Explore Button */}
-                  <Link
-                    to={`/company/${company._id}`}
-                    className="mt-7 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-2xl font-medium transition-all active:scale-[0.98]"
-                  >
-                    Explore Products
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         )}
 

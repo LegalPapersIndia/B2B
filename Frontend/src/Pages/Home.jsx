@@ -1,4 +1,5 @@
-import React from 'react';
+// src/Pages/Home.jsx
+import React, { useState } from 'react';
 
 import HeroCarousel from '../Component/HeroCarousel';
 import Sidebar from '../Component/SideBar';
@@ -11,32 +12,57 @@ import ManufacturingHubsCarousel from '../Component/ManufacturingHubsCarousel';
 import AllCompanies from '../Component/AllCompanies';
 
 export default function Home() {
+  const [showBuyForm, setShowBuyForm] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50/60">
-      <div className="mx-auto max-w-[1400px] xl:max-w-[1520px] px-4 sm:px-6 lg:px-8">
-        <div className="relative flex flex-col lg:flex-row gap-0 lg:gap-6 xl:gap-8">
-          <aside className="hidden lg:block lg:w-72 xl:w-80 shrink-0">
-            <Sidebar />
-          </aside>
+      
+      {/* Normal Home Page Content */}
+      {!showBuyForm && (
+        <>
+          <div className="mx-auto max-w-[1400px] xl:max-w-[1520px] px-4 sm:px-6 lg:px-8">
+            <div className="relative flex flex-col lg:flex-row gap-0 lg:gap-6 xl:gap-8">
+              
+              {/* Left Sidebar */}
+              <aside className="hidden lg:block lg:w-72 xl:w-80 shrink-0">
+                <Sidebar />
+              </aside>
 
-          <div className="flex-1 min-w-0 lg:mt-10 z-10">
-            <HeroCarousel />
+              {/* Main Content Area */}
+              <div className="flex-1 min-w-0 lg:mt-10 z-10">
+                <HeroCarousel />
+              </div>
+
+              {/* Right Action Sidebar */}
+              <aside className="hidden xl:block xl:w-80 shrink-0">
+                <div className="sticky top-28">
+                  <ActionSidebar 
+                    onWantToBuyClick={() => setShowBuyForm(true)} 
+                  />
+                </div>
+              </aside>
+
+            </div>
           </div>
 
-          <aside className="hidden xl:block xl:w-80 shrink-0">
-            <div className="sticky top-28 h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain rounded-2xl shadow-2xl bg-white/95 backdrop-blur-lg border border-gray-200/60">
-              <ActionSidebar />
-            </div>
-          </aside>
-        </div>
-      </div>
+          {/* Other Sections */}
+          <CategoryShowcase />
+          <ManufacturingHubsCarousel />
+          <AllCompanies />
+          <PromoCard />
+          <BuyerPromoCard />
+          <Testimonials />
+        </>
+      )}
 
-      <CategoryShowcase />
-      <ManufacturingHubsCarousel />
-      <AllCompanies />
-      <PromoCard />
-      <BuyerPromoCard />
-      <Testimonials />
+      {/* Full Screen Buy Requirement Form */}
+      {showBuyForm && (
+        <ActionSidebar 
+          isFullScreen={true} 
+          onClose={() => setShowBuyForm(false)} 
+        />
+      )}
+
     </div>
   );
 }

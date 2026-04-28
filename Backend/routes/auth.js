@@ -194,7 +194,7 @@ router.post(
       let avatarUrl = existingUser?.avatar;
       if (req.file) {
         try {
-          const uploadToCloudinary = require('../utils/cloudinaryUpload'); // Change path if needed
+          const uploadToCloudinary = require('../utils/cloudinary'); // Change path if needed
           const uploadResult = await uploadToCloudinary(req.file.buffer, {
             folder: 'seller-profiles',
             public_id: `seller_${sellerId}`,
