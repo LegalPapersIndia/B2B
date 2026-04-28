@@ -2,12 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { MapPin, Mail, ArrowRight, Boxes } from 'lucide-react';
+import { MapPin, Mail, ArrowRight, Boxes, Briefcase } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
   ? `${import.meta.env.VITE_API_BASE_URL}/api` 
   : 'http://localhost:5000/api';
+
+const toTitle = (value = "") =>
+  value
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 
 export default function AllCompanies() {
   const [companies, setCompanies] = useState([]);
@@ -22,12 +28,11 @@ export default function AllCompanies() {
       const res = await axios.get(`${API_BASE_URL}/companies`);
       let allCompanies = res.data.companies || res.data || [];
 
-      // 🔥 Premium sellers ko pehle aur normal sellers ko baad mein sort karo
+      // Premium sellers ko top pe laane ke liye
       allCompanies.sort((a, b) => {
-        // Premium ko pehle laane ke liye (true > false)
         if (a.isPremium && !b.isPremium) return -1;
         if (!a.isPremium && b.isPremium) return 1;
-        return 0; // dono same category mein hain toh order same rakho
+        return 0;
       });
 
       setCompanies(allCompanies);
@@ -47,7 +52,7 @@ export default function AllCompanies() {
               Our Associates
             </h2>
             <p className="text-gray-600 mt-3 text-lg">
-              Registered businesses with their products and company details in one place
+              Trusted businesses with verified products and company details
             </p>
           </div>
 
@@ -81,27 +86,40 @@ export default function AllCompanies() {
                     </div>
                   )}
 
+                  {/* Company Name */}
                   <h3 className="font-semibold text-xl line-clamp-2">
-                    {company.company || company.companyName}
+                    {company.company || company.companyName || company.name}
                   </h3>
 
-                  {company.name && (
+                  {/* Owner Name (optional) */}
+                  {company.name && company.name !== company.company && (
                     <p className="text-sm text-emerald-700 mt-1">by {company.name}</p>
                   )}
 
-                  <div className="mt-4 space-y-2 text-sm text-gray-600">
-                    {company.productCount ? (
+                  {/* Industry / Business Type - NEW */}
+                  {company.industry || company.businessType ? (
+                    <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-2xl text-sm font-medium">
+                      <Briefcase className="w-4 h-4" />
+                      {toTitle(company.industry || company.businessType)}
+                    </div>
+                  ) : null}
+
+                  {/* Details */}
+                  <div className="mt-5 space-y-2.5 text-sm text-gray-600">
+                    {company.productCount !== undefined && (
                       <div className="flex items-center gap-2">
                         <Boxes className="w-4 h-4" />
                         <span>{company.productCount} products</span>
                       </div>
-                    ) : null}
+                    )}
+
                     {company.email && (
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4" />
                         <span className="truncate">{company.email}</span>
                       </div>
                     )}
+
                     {company.location && (
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
@@ -110,11 +128,12 @@ export default function AllCompanies() {
                     )}
                   </div>
 
+                  {/* Explore Button */}
                   <Link
                     to={`/company/${company._id}`}
-                    className="mt-6 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-medium transition-all"
+                    className="mt-7 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-2xl font-medium transition-all active:scale-[0.98]"
                   >
-                    Explore
+                    Explore Products
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -124,7 +143,7 @@ export default function AllCompanies() {
         )}
 
         {/* View All Button */}
-        <div className="text-center mt-12">
+        <div className="text-center mt-14">
           <Link
             to="/companies"
             className="inline-flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-semibold text-lg transition"

@@ -1,13 +1,18 @@
 const express = require('express');
 const { clerkClient } = require('@clerk/clerk-sdk-node');
+const multer = require('multer');
 
 const Seller = require('../models/Seller');
 const { requireSellerAuth } = require('../middleware/requireSellerAuth');
-const { createSellerToken, verifyPassword } = require('../utils/sellerAuth');
 const { buildSellerLookupFromAuth } = require('../utils/sellerIdentity');
 
-const router = express.Router();
+// ===================== MULTER SETUP =====================
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+});
 
+// ===================== HELPERS =====================
 function normalizeWebsite(website) {
   if (!website) return '';
   const value = String(website).trim();
@@ -21,10 +26,9 @@ function normalizeWebsite(website) {
 function isProfileComplete(user) {
   return !!(
     user &&
-    user.name &&
+    user.company &&
     user.email &&
     user.phone &&
-    user.company &&
     user.address
   );
 }
@@ -40,11 +44,18 @@ function formatUserResponse(user) {
     company: user.company,
     website: user.website,
     address: user.address,
+    gstNumber: user.gstNumber,
+    industry: user.businessType,
+    avatar: user.avatar,
     isPremium: user.isPremium === true,
     isProfileComplete: isProfileComplete(user),
   };
 }
 
+// ===================== ROUTER =====================
+const router = express.Router();
+
+// Login Route (keeping your existing one)
 router.post('/login', async (req, res) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
@@ -67,7 +78,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const isValid = verifyPassword(password, user.passwordHash);
+    const isValid = require('../utils/sellerAuth').verifyPassword(password, user.passwordHash);
 
     if (!isValid) {
       return res.status(401).json({
@@ -76,7 +87,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const token = createSellerToken(user);
+    const token = require('../utils/sellerAuth').createSellerToken(user);
 
     res.json({
       success: true,
@@ -88,16 +99,13 @@ router.post('/login', async (req, res) => {
         company: user.company,
       },
     });
-
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
+// GET /me
 router.get('/me', requireSellerAuth, async (req, res) => {
   try {
     const sellerId = req.auth.userId;
@@ -113,14 +121,10 @@ router.get('/me', requireSellerAuth, async (req, res) => {
       }
     } else {
       const clerkUser = await clerkClient.users.getUser(sellerId);
-      const primaryEmail =
-        clerkUser.emailAddresses?.[0]?.emailAddress ||
-        clerkUser.primaryEmailAddress?.emailAddress ||
-        '';
-      const fullName =
-        clerkUser.fullName ||
-        `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
-        '';
+      const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress || 
+                          clerkUser.emailAddresses?.[0]?.emailAddress || '';
+      const fullName = clerkUser.fullName || 
+                      `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim();
 
       if (!user) {
         user = await Seller.create({
@@ -149,116 +153,117 @@ router.get('/me', requireSellerAuth, async (req, res) => {
   }
 });
 
-router.post('/complete-profile', requireSellerAuth, async (req, res) => {
-  try {
-    const sellerId = req.auth.userId;
-    let clerkEmail = '';
-    let clerkFullName = '';
+// COMPLETE PROFILE - Main Route (with image upload)
+router.post(
+  '/complete-profile',
+  requireSellerAuth,
+  upload.single('profilePhoto'),
+  async (req, res) => {
+    try {
+      const sellerId = req.auth.userId;
+      let clerkEmail = '';
+      let clerkFullName = '';
 
-    if (req.sellerAuth?.provider !== 'local') {
-      const clerkUser = await clerkClient.users.getUser(sellerId);
+      if (req.sellerAuth?.provider !== 'local') {
+        const clerkUser = await clerkClient.users.getUser(sellerId);
+        clerkEmail = clerkUser.primaryEmailAddress?.emailAddress || 
+                     clerkUser.emailAddresses?.[0]?.emailAddress || '';
+        clerkFullName = clerkUser.fullName || 
+                        `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim();
+      }
 
-      clerkEmail =
-        clerkUser.emailAddresses?.[0]?.emailAddress ||
-        clerkUser.primaryEmailAddress?.emailAddress ||
-        '';
+      const sellerLookup = buildSellerLookupFromAuth(req);
+      const existingUser = sellerLookup ? await Seller.findOne(sellerLookup) : null;
 
-      clerkFullName =
-        clerkUser.fullName ||
-        `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
-        '';
-    }
+      const company = String(req.body.businessName || req.body.company || existingUser?.company || '').trim();
+      const email = String(req.body.email || clerkEmail || existingUser?.email || '').trim().toLowerCase();
+      const phone = String(req.body.mobile || req.body.phone || existingUser?.phone || '').trim();
+      const address = String(req.body.address || existingUser?.address || '').trim();
+      const website = normalizeWebsite(req.body.website || existingUser?.website);
+      const gstNumber = String(req.body.gstNumber || existingUser?.gstNumber || '').trim().toUpperCase();
+      const industry = String(req.body.industry || existingUser?.businessType || '').trim();
 
-    const sellerLookup = buildSellerLookupFromAuth(req);
-    const existingUser = sellerLookup ? await Seller.findOne(sellerLookup) : null;
+      const name = String(req.body.name || req.body.fullName || company || existingUser?.name || '').trim();
 
-    const name = String(req.body.name || req.body.fullName || req.body.businessName || clerkFullName || existingUser?.name || '').trim();
-    const company = String(req.body.company || req.body.businessName || existingUser?.company || '').trim();
-    const email = String(req.body.email || clerkEmail || existingUser?.email || '').trim().toLowerCase();
-    const phone = String(req.body.phone || req.body.mobile || existingUser?.phone || '').trim();
-    const address = String(req.body.address || existingUser?.address || '').trim();
-    const website = normalizeWebsite(req.body.website || existingUser?.website);
+      if (!company) return res.status(400).json({ success: false, message: 'Business name is required' });
+      if (!phone) return res.status(400).json({ success: false, message: 'Mobile number is required' });
+      if (!address) return res.status(400).json({ success: false, message: 'Address is required' });
+      if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
 
-    const finalName = name || company;
+      // Upload profile photo to Cloudinary
+      let avatarUrl = existingUser?.avatar;
+      if (req.file) {
+        try {
+          const uploadToCloudinary = require('../utils/cloudinaryUpload'); // Change path if needed
+          const uploadResult = await uploadToCloudinary(req.file.buffer, {
+            folder: 'seller-profiles',
+            public_id: `seller_${sellerId}`,
+            overwrite: true,
+          });
+          avatarUrl = uploadResult.secure_url;
+        } catch (uploadErr) {
+          console.error('Cloudinary upload failed:', uploadErr);
+        }
+      }
 
-    if (!company) {
-      return res.status(400).json({
-        success: false,
-        message: 'Company/Business name is required',
-      });
-    }
+      const payload = {
+        name,
+        company,
+        email,
+        phone,
+        address,
+        website,
+        gstNumber,
+        businessType: industry,
+        avatar: avatarUrl,
+        profileCompletedAt: new Date(),
+      };
 
-    if (!phone) {
-      return res.status(400).json({
-        success: false,
-        message: 'Phone/Mobile number is required',
-      });
-    }
-
-    if (!address) {
-      return res.status(400).json({
-        success: false,
-        message: 'Address is required',
-      });
-    }
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is required',
-      });
-    }
-
-    const payload = {
-      name: finalName,
-      company,
-      email,
-      phone,
-      address,
-      website,
-      profileCompletedAt: new Date(),
-    };
-
-    const user = await Seller.findOneAndUpdate(
-      { clerkId: sellerId },
-      {
-        $set: payload,
-        $setOnInsert: {
-          clerkId: sellerId,
-          authProvider: req.sellerAuth?.provider === 'local' ? 'local' : 'clerk',
+      const user = await Seller.findOneAndUpdate(
+        { clerkId: sellerId },
+        {
+          $set: payload,
+          $setOnInsert: {
+            clerkId: sellerId,
+            authProvider: req.sellerAuth?.provider === 'local' ? 'local' : 'clerk',
+          },
         },
-      },
-      { upsert: true, new: true, runValidators: true }
-    );
+        { upsert: true, new: true, runValidators: true }
+      );
 
-    if (req.sellerAuth?.provider !== 'local') {
-      clerkClient.users.updateUser(sellerId, {
-        unsafeMetadata: {
-          profileCompleted: true,
-          name: finalName,
-          company,
-          phone,
-          email,
-          address,
-          website,
-          businessName: company,
-          mobile: phone,
-        },
-      }).catch((err) => console.error('Clerk metadata update failed:', err));
+      // Update Clerk metadata
+      if (req.sellerAuth?.provider !== 'local') {
+        try {
+          await clerkClient.users.updateUser(sellerId, {
+            unsafeMetadata: {
+              profileCompleted: true,
+              businessName: company,
+              mobile: phone,
+              address,
+              website,
+              gstNumber,
+              industry,
+              avatar: avatarUrl,
+            },
+          });
+        } catch (clerkErr) {
+          console.error('Clerk metadata update failed:', clerkErr);
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Business profile updated successfully',
+        user: formatUserResponse(user),
+      });
+    } catch (error) {
+      console.error('Complete Profile Error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
     }
-
-    res.json({
-      success: true,
-      message: 'Profile completed successfully',
-      user: formatUserResponse(user),
-    });
-  } catch (error) {
-    console.error('Complete Profile Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
   }
-});
+);
 
 module.exports = router;

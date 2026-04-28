@@ -53,6 +53,10 @@ export default function SellerDashboard() {
     mobile: "",
     address: "",
     website: "",
+    gstNumber: "",           
+    industry: "",            
+    profilePhoto: null,      
+    profilePhotoPreview: "",
   });
 
   const [form, setForm] = useState({
@@ -210,7 +214,7 @@ export default function SellerDashboard() {
     }
   };
 
-  const fetchBusinessProfile = async () => {
+const fetchBusinessProfile = async () => {
     try {
       setProfileLoading(true);
       const token = await getToken();
@@ -219,12 +223,17 @@ export default function SellerDashboard() {
       });
 
       const profile = res.data?.user || {};
+
       setProfileForm({
         businessName: profile.company || user?.unsafeMetadata?.businessName || "",
-        email: profile.email || user?.primaryEmailAddress?.emailAddress || user?.unsafeMetadata?.email || "",
+        email: profile.email || user?.primaryEmailAddress?.emailAddress || "",
         mobile: profile.phone || user?.unsafeMetadata?.mobile || "",
         address: profile.address || user?.unsafeMetadata?.address || "",
         website: profile.website || user?.unsafeMetadata?.website || "",
+        gstNumber: profile.gstNumber || user?.unsafeMetadata?.gstNumber || "",
+        industry: profile.industry || user?.unsafeMetadata?.industry || "",
+        profilePhoto: null,
+        profilePhotoPreview: profile.profilePhoto || user?.unsafeMetadata?.profilePhoto || "",
       });
     } catch (err) {
       console.error("Error fetching business profile:", err);
@@ -232,13 +241,23 @@ export default function SellerDashboard() {
       setProfileLoading(false);
     }
   };
-
-  const handleProfileInputChange = (e) => {
+const handleProfileInputChange = (e) => {
     const { name, value } = e.target;
     setProfileForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleProfileSubmit = async (e) => {
+  const handleProfilePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileForm((prev) => ({
+        ...prev,
+        profilePhoto: file,
+        profilePhotoPreview: URL.createObjectURL(file),
+      }));
+    }
+  };
+
+const handleProfileSubmit = async (e) => {
     e.preventDefault();
 
     if (!profileForm.businessName || !profileForm.email || !profileForm.mobile || !profileForm.address) {
@@ -249,24 +268,37 @@ export default function SellerDashboard() {
     try {
       setProfileSubmitting(true);
       const token = await getToken();
+      const formData = new FormData();
+
+      formData.append("businessName", profileForm.businessName);
+      formData.append("email", profileForm.email);
+      formData.append("mobile", profileForm.mobile);
+      formData.append("address", profileForm.address);
+      formData.append("website", profileForm.website || "");
+      formData.append("gstNumber", profileForm.gstNumber || "");
+      formData.append("industry", profileForm.industry || "");
+
+      if (profileForm.profilePhoto) {
+        formData.append("profilePhoto", profileForm.profilePhoto);
+      }
+
       await axios.post(
         `${API_BASE_URL}/auth/complete-profile`,
+        formData,
         {
-          businessName: profileForm.businessName,
-          email: profileForm.email,
-          mobile: profileForm.mobile,
-          address: profileForm.address,
-          website: profileForm.website,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data"
+          },
         }
       );
 
       await refreshProfile(token);
       await fetchBusinessProfile();
-      alert("Business profile updated successfully");
-      navigate("/seller-dashboard", { replace: true });
+      
+      alert("Business profile updated successfully!");
+      // Optionally switch back to summary view or stay
+      // setActiveTab("products");
     } catch (err) {
       console.error("Profile update error:", err);
       alert(err.response?.data?.message || "Failed to update business profile");
@@ -367,18 +399,6 @@ export default function SellerDashboard() {
       alert('Please enter your custom subcategory name');
       return;
     }
-
-    // Images are optional for category requests
-    // if (form.category === 'other' && !requestedCategoryImage && !editingId) {
-    //   alert('New category request ke liye category image upload karna zaroori hai');
-    //   return;
-    // }
-
-    // if (form.category === 'other' && !requestedSubcategoryImage && !editingId) {
-    //   alert('New category request ke liye subcategory image upload karna zaroori hai');
-    //   return;
-    // }
-
     setSubmitting(true);
     try {
       const token = await getToken();
@@ -882,16 +902,26 @@ export default function SellerDashboard() {
           </div>
         )}
 
-        {activeTab === "profile" && (
-          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8">
-            <div className="bg-white rounded-3xl shadow-xl p-8">
-              <p className="text-sm uppercase tracking-[0.2em] text-emerald-700 font-semibold">
-                Business Summary
-              </p>
-              <h2 className="text-3xl font-bold text-gray-900 mt-3">
-                {profileForm.businessName || user?.unsafeMetadata?.businessName || "Your Business"}
-              </h2>
-              <p className="text-gray-600 mt-3">
+      {activeTab === "profile" && (
+        <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8">
+          
+          {/* Left Side - Business Summary */}
+          <div className="bg-white rounded-3xl shadow-xl p-8">
+            <p className="text-sm uppercase tracking-[0.2em] text-emerald-700 font-semibold">
+              Business Summary
+            </p>
+            <h2 className="text-3xl font-bold text-gray-900 mt-3">
+              {profileForm.businessName || "Your Business"}
+            </h2>
+
+            {profileForm.profilePhotoPreview && (
+              <img
+                src={profileForm.profilePhotoPreview}
+                alt="Business Logo"
+                className="w-24 h-24 object-cover rounded-2xl mt-6 border border-gray-200"
+              />
+            )}       
+             <p className="text-gray-600 mt-3">
                 You can update your business profile information here.
               </p>
 
@@ -913,6 +943,18 @@ export default function SellerDashboard() {
                   <p className="text-lg font-semibold text-gray-900 mt-1 whitespace-pre-line">{profileForm.address || "-"}</p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                <p className="text-sm text-gray-500">GST Number</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">
+                  {profileForm.gstNumber || "-"}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                <p className="text-sm text-gray-500">Industry</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">
+                  {profileForm.industry ? toTitle(profileForm.industry) : "-"}
+                </p>
+              </div>
+                <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
                   <p className="text-sm text-gray-500">Website (Optional)</p>
                   <p className="text-lg font-semibold text-gray-900 mt-1 break-all">{profileForm.website || "-"}</p>
                 </div>
@@ -926,20 +968,42 @@ export default function SellerDashboard() {
               </p>
 
               {profileLoading ? (
-                <div className="text-gray-500">Loading profile...</div>
-              ) : (
-                <form onSubmit={handleProfileSubmit} className="grid grid-cols-1 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
-                    <input
-                      type="text"
-                      name="businessName"
-                      value={profileForm.businessName}
-                      onChange={handleProfileInputChange}
-                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
-                      required
+              <div className="text-gray-500">Loading profile...</div>
+            ) : (
+              <form onSubmit={handleProfileSubmit} className="space-y-6">
+                
+                {/* Profile Photo Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Business Profile Photo / Logo
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfilePhotoChange}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                  />
+                  {profileForm.profilePhotoPreview && (
+                    <img
+                      src={profileForm.profilePhotoPreview}
+                      alt="Preview"
+                      className="mt-4 w-28 h-28 object-cover rounded-2xl border border-gray-200"
                     />
-                  </div>
+                  )}
+                </div>
+
+                {/* Business Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
+                  <input
+                    type="text"
+                    name="businessName"
+                    value={profileForm.businessName}
+                    onChange={handleProfileInputChange}
+                    className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Email ID *</label>
@@ -976,6 +1040,36 @@ export default function SellerDashboard() {
                       required
                     />
                   </div>
+                  <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Industry</label>
+                  <select
+                    name="industry"
+                    value={profileForm.industry}
+                    onChange={handleProfileInputChange}
+                    className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500 bg-white"
+                  >
+                    <option value="">Select Industry</option>
+                    {allCategories.map((cat) => (
+                      <option key={cat.name} value={cat.name}>
+                        {toTitle(cat.name)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* GST Number */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
+                  <input
+                    type="text"
+                    name="gstNumber"
+                    value={profileForm.gstNumber}
+                    onChange={handleProfileInputChange}
+                    placeholder="22AAAAA0000A1Z5"
+                    className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500 uppercase"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Optional but recommended for B2B trust</p>
+                </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
@@ -988,6 +1082,7 @@ export default function SellerDashboard() {
                       className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
                     />
                   </div>
+
 
                   <button
                     type="submit"
