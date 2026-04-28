@@ -12,7 +12,7 @@ import {
 const Footer = () => {
   const categories = [
     { name: 'Medicine', href: '/category/medicine' },
-    { name: 'Food & Beverages', href: '/category/food-beverages' },
+    { name: 'Food & Beverages', href: '/category/food' },
     { name: 'Cosmetics', href: '/category/cosmetics' },
     { name: 'Confectionery', href: '/category/confectionery' },
     { name: 'Daily Use Items', href: '/category/daily-use' },

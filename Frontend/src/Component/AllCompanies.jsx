@@ -20,7 +20,17 @@ export default function AllCompanies() {
   const fetchCompanies = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/companies`);
-      setCompanies(res.data.companies || res.data || []);
+      let allCompanies = res.data.companies || res.data || [];
+
+      // 🔥 Premium sellers ko pehle aur normal sellers ko baad mein sort karo
+      allCompanies.sort((a, b) => {
+        // Premium ko pehle laane ke liye (true > false)
+        if (a.isPremium && !b.isPremium) return -1;
+        if (!a.isPremium && b.isPremium) return 1;
+        return 0; // dono same category mein hain toh order same rakho
+      });
+
+      setCompanies(allCompanies);
     } catch (err) {
       console.error("Failed to fetch companies:", err);
     } finally {
@@ -67,7 +77,7 @@ export default function AllCompanies() {
                 <div className="p-6">
                   {company.isPremium && (
                     <div className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-semibold mb-3">
-                      Premium Seller
+                      ⭐ Premium Seller
                     </div>
                   )}
 

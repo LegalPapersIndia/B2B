@@ -6,50 +6,32 @@ const CategoryRequest = require('../models/CategoryRequest');
 const multer = require('multer');
 const { requireSellerAuth } = require('../middleware/requireSellerAuth');
 const { uploadBufferToCloudinary } = require('../utils/cloudinary');
-const {
-  getAuthIdentityCandidates,
-  buildSellerLookupFromAuth,
-} = require('../utils/sellerIdentity');
-
+const {getAuthIdentityCandidates,buildSellerLookupFromAuth} = require('../utils/sellerIdentity');
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
-
 const requireAuth = requireSellerAuth;
-
 function hasCompletedProfile(user) {
-  return !!(
-    user &&
-    user.name &&
-    user.email &&
-    user.phone &&
-    user.company &&
-    user.address
-  );
+  return !!(user && user.name && user.email && user.phone && user.company && user.address);
 }
-
 function getUploadedFiles(req, fieldName) {
   return (req.files || []).filter((file) => file.fieldname === fieldName);
 }
-
 async function requireCompletedProfile(req, res, next) {
   try {
     const sellerLookup = buildSellerLookupFromAuth(req);
     const user = sellerLookup ? await Seller.findOne(sellerLookup) : null;
-
     if (!user || !hasCompletedProfile(user)) {
       return res.status(403).json({
         error: 'Profile incomplete',
         message: 'Please complete profile first to add products',
       });
     }
-
     req.currentUserProfile = user;
     next();
   } catch (err) {
     next(err);
   }
 }
-
 router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req, res) => {
   try {
     const { name, category, subcategory, otherCategory, otherSubcategory, price, moq, description } = req.body;
@@ -80,16 +62,6 @@ router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req,
       requestCategoryImageFile ? await uploadBufferToCloudinary(requestCategoryImageFile.buffer) : '';
     const requestedSubcategoryImage =
       requestSubcategoryImageFile ? await uploadBufferToCloudinary(requestSubcategoryImageFile.buffer) : '';
-
-    // Images are optional for category requests
-    // if (normalizedCategory === 'other') {
-    //   if (!requestedCategoryImage) {
-    //     return res.status(400).json({ error: 'Category image is required for a new category request' });
-    //   }
-    //   if (!requestedSubcategoryImage) {
-    //     return res.status(400).json({ error: 'Subcategory image is required for a new category request' });
-    //   }
-    // }
 
     const product = new Product({
       clerkId,
@@ -145,6 +117,8 @@ router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req,
   }
 });
 
+// Replace your current router.get('/') with this improved version
+
 router.get('/', async (req, res) => {
   try {
     const { category, subcategory, homePreview } = req.query;
@@ -152,15 +126,16 @@ router.get('/', async (req, res) => {
 
     if (category) filter.category = String(category).trim().toLowerCase();
     if (subcategory) filter.subcategory = String(subcategory).trim().toLowerCase();
-    // Public listing should follow super-admin final decision only
     filter.taxonomyStatus = 'confirmed';
 
-    const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
+    const products = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
     const isHomePreview = ['1', 'true', 'yes'].includes(String(homePreview || '').toLowerCase());
 
     let visibleProducts = products;
     if (isHomePreview) {
-      // Homepage should not show multiple products from same subcategory.
       const seenKeys = new Set();
       visibleProducts = [];
       for (const product of products) {
@@ -172,9 +147,12 @@ router.get('/', async (req, res) => {
     }
 
     const clerkIds = [...new Set(visibleProducts.map((p) => p.clerkId).filter(Boolean))];
+
+    // 🔥 Important: isPremium field add kiya
     const sellers = await Seller.find({ clerkId: { $in: clerkIds } })
-      .select('clerkId name company email phone website')
+      .select('clerkId name company email phone website isPremium')   // ← isPremium add kiya
       .lean();
+
     const sellerMap = new Map(sellers.map((s) => [s.clerkId, s]));
 
     const enriched = visibleProducts.map((product) => {
@@ -188,7 +166,7 @@ router.get('/', async (req, res) => {
               email: seller.email || '',
               phone: seller.phone || '',
               website: seller.website || '',
-              isPremium: seller.isPremium === true,
+              isPremium: seller.isPremium === true,        // ← Yeh line ab sahi se aayegi
             }
           : null,
       };
@@ -196,10 +174,10 @@ router.get('/', async (req, res) => {
 
     res.json(enriched);
   } catch (err) {
+    console.error('Products fetch error:', err);
     res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
-
 router.get('/my', requireAuth, async (req, res) => {
   try {
     const ownerIds = getAuthIdentityCandidates(req);
@@ -209,7 +187,6 @@ router.get('/my', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (req, res) => {
   try {
     const { name, category, subcategory, otherCategory, otherSubcategory, price, moq, description } = req.body;
@@ -219,16 +196,13 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-
     const updatePayload = {};
     if (name !== undefined) updatePayload.name = String(name).trim();
     if (price !== undefined) updatePayload.price = Number(price);
     if (moq !== undefined) updatePayload.moq = Number(moq);
     if (description !== undefined) updatePayload.description = String(description || '').trim();
-
     const hasCategory = category !== undefined;
     const hasSubcategory = subcategory !== undefined;
-
     if (hasCategory || hasSubcategory) {
       const normalizedCategory = String(category || '').trim().toLowerCase();
       const normalizedSubcategory = String(subcategory || '').trim().toLowerCase();
@@ -236,11 +210,9 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
       const normalizedOtherSubcategory = String(otherSubcategory || '').trim().toLowerCase();
       const finalCategory = hasCategory ? normalizedCategory : String(product.category || '').trim().toLowerCase();
       const finalSubcategory = hasSubcategory ? normalizedSubcategory : String(product.subcategory || '').trim().toLowerCase();
-
       if (!finalSubcategory) {
         return res.status(400).json({ error: 'Subcategory is required' });
       }
-
       updatePayload.category = finalCategory;
       updatePayload.subcategory = finalCategory === 'other' ? 'other' : finalSubcategory;
       updatePayload.requestedCategoryName = finalCategory === 'other' ? normalizedOtherCategory : '';
@@ -249,19 +221,15 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
           ? normalizedOtherSubcategory
           : (finalSubcategory === 'other' ? normalizedOtherSubcategory : '');
     }
-
     const requestCategoryImageFile = getUploadedFiles(req, 'requestedCategoryImage')[0];
     const requestSubcategoryImageFile = getUploadedFiles(req, 'requestedSubcategoryImage')[0];
     const productImageFiles = getUploadedFiles(req, 'images').slice(0, 4);
-
     if (requestCategoryImageFile) {
       updatePayload.requestedCategoryImage = await uploadBufferToCloudinary(requestCategoryImageFile.buffer);
     }
-
     if (requestSubcategoryImageFile) {
       updatePayload.requestedSubcategoryImage = await uploadBufferToCloudinary(requestSubcategoryImageFile.buffer);
     }
-
     const nextCategory = String(updatePayload.category ?? product.category ?? '').trim().toLowerCase();
     const nextCategoryImage = String(
       updatePayload.requestedCategoryImage ?? product.requestedCategoryImage ?? ''
@@ -269,7 +237,6 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
     const nextSubcategoryImage = String(
       updatePayload.requestedSubcategoryImage ?? product.requestedSubcategoryImage ?? ''
     ).trim();
-
     if (nextCategory === 'other') {
       if (!nextCategoryImage) {
         return res.status(400).json({ error: 'Category image is required for a new category request' });
@@ -278,7 +245,6 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
         return res.status(400).json({ error: 'Subcategory image is required for a new category request' });
       }
     }
-
     if (productImageFiles.length > 0) {
       const uploadedImages = [];
       for (const file of productImageFiles) {
@@ -289,22 +255,18 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
         updatePayload.images = uploadedImages;
       }
     }
-
     const updated = await Product.findByIdAndUpdate(req.params.id, updatePayload, {
       new: true,
       runValidators: true,
     });
-
     res.json({ success: true, message: 'Product updated', product: updated });
   } catch (err) {
     if (err.name === 'ValidationError' || err.message) {
       return res.status(400).json({ error: err.message || 'Failed to update product' });
     }
-
     res.status(500).json({ error: 'Failed to update product' });
   }
 });
-
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const ownerIds = getAuthIdentityCandidates(req);
@@ -315,12 +277,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to delete product' });
   }
 });
-
-// Category Request Routes
 router.post('/category-requests', requireAuth, requireCompletedProfile, upload.any(), async (req, res) => {
   try {
     const { type, name, description, category } = req.body;
-
     if (!type || !['category', 'subcategory'].includes(type)) {
       return res.status(400).json({ error: 'Invalid type. Must be category or subcategory' });
     }
@@ -332,7 +291,6 @@ router.post('/category-requests', requireAuth, requireCompletedProfile, upload.a
     if (type === 'subcategory' && !category) {
       return res.status(400).json({ error: 'Category is required for subcategory requests' });
     }
-
     const clerkId = req.currentUserProfile?.clerkId || req.auth.userId;
     const imageFile = getUploadedFiles(req, 'image')[0];
 
@@ -340,7 +298,6 @@ router.post('/category-requests', requireAuth, requireCompletedProfile, upload.a
     if (imageFile) {
       imageUrl = await uploadBufferToCloudinary(imageFile.buffer);
     }
-
     const request = new CategoryRequest({
       type,
       name: name.trim().toLowerCase(),

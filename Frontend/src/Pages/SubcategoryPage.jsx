@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Star } from "lucide-react";
 import axios from "axios";
 import { useAppAuth } from "../context/AuthContext";
 
@@ -49,22 +49,37 @@ function SubcategoryPage() {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${API_BASE_URL}/products?category=${encodeURIComponent(
-          slug
-        )}&subcategory=${encodeURIComponent(subslug)}`
+        `${API_BASE_URL}/products?category=${encodeURIComponent(slug)}&subcategory=${encodeURIComponent(subslug)}`
       );
-      setProducts(Array.isArray(res.data) ? res.data : []);
+
+      let fetchedProducts = Array.isArray(res.data) ? res.data : [];
+
+      // Premium logic + Sorting
+      fetchedProducts = fetchedProducts
+        .map((product) => {
+          const seller = product.seller || {};
+          return {
+            ...product,
+            isPremiumSeller: seller.isPremium === true,
+          };
+        })
+        // 🔥 Premium products ko sabse upar laane ke liye sorting
+        .sort((a, b) => {
+          if (a.isPremiumSeller && !b.isPremiumSeller) return -1;
+          if (!a.isPremiumSeller && b.isPremiumSeller) return 1;
+          return 0; // dono same category (premium ya normal) mein hain toh order same rakho
+        });
+
+      setProducts(fetchedProducts);
     } catch (err) {
+      console.error("Error fetching subcategory products:", err);
       setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const heading = useMemo(
-    () => `${toTitle(slug)} / ${toTitle(subslug)}`,
-    [slug, subslug]
-  );
+  const heading = useMemo(() => `${toTitle(slug)} / ${toTitle(subslug)}`, [slug, subslug]);
 
   const revealContact = (productId, type, value) => {
     if (!value) return;
@@ -74,11 +89,7 @@ function SubcategoryPage() {
   const recordContactClick = async (productId, type) => {
     try {
       const token = await getToken();
-
-      if (!token) {
-        navigate("/login");
-        return;
-      }
+      if (!token) return;
 
       await axios.post(
         `${API_BASE_URL}/enquiries/contact-click`,
@@ -87,39 +98,19 @@ function SubcategoryPage() {
           contactMethod: type,
           buyerName: user?.fullName || user?.firstName || "",
           buyerEmail: user?.primaryEmailAddress?.emailAddress || "",
-          buyerPhone:
-            user?.primaryPhoneNumber?.phoneNumber ||
-            user?.unsafeMetadata?.mobile ||
-            "",
+          buyerPhone: user?.primaryPhoneNumber?.phoneNumber || user?.unsafeMetadata?.mobile || "",
           buyerCompany: user?.unsafeMetadata?.businessName || "",
           buyerWebsite: user?.unsafeMetadata?.website || "",
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
     } catch (err) {
       console.error("Contact click tracking failed:", err.message);
     }
   };
 
-  const buildContactAction = (type, value) => {
-    if (!value) return null;
-    if (type === "phone") return `tel:${value}`;
-    if (type === "email") return `mailto:${value}`;
-    if (type === "website")
-      return value.startsWith("http") ? value : `https://${value}`;
-    return null;
-  };
-
   if (!isLoaded || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading products...
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Loading products...</div>;
   }
 
   return (
@@ -136,67 +127,87 @@ function SubcategoryPage() {
 
         {products.length === 0 ? (
           <div className="bg-white border rounded-2xl p-12 text-center">
-            No products found
+            No products found in this subcategory.
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((p) => {
               const seller = p.seller || {};
+
               return (
-                <div key={p._id} className="bg-white rounded-2xl border">
+                <div 
+                  key={p._id} 
+                  className="bg-white rounded-2xl border overflow-hidden hover:shadow-xl transition relative"
+                >
+                  {/* Premium Seller Badge */}
+                  {p.isPremiumSeller && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full shadow-md">
+                        <Star className="w-4 h-4 fill-current" />
+                        PREMIUM SELLER
+                      </div>
+                    </div>
+                  )}
+
                   <img
-                    src={p.images?.[0]}
+                    src={p.images?.[0] || "https://picsum.photos/id/20/600/400"}
                     alt={p.name}
                     className="w-full h-52 object-cover rounded-t-2xl"
                   />
 
                   <div className="p-5">
-                    <h3 className="font-semibold">{p.name}</h3>
+                    <h3 className="font-semibold text-lg line-clamp-2">{p.name}</h3>
+                    
+                    <p className="text-emerald-600 font-bold text-xl mt-1">
+                      Rs {p.price?.toLocaleString("en-IN")}
+                    </p>
+                    
+                    <p className="text-sm text-gray-500 mt-1">MOQ: {p.moq || "N/A"}</p>
 
-<div className="flex gap-2 mt-4">
-  <button
-    onClick={async () => {
-      revealContact(p._id, "phone", seller.phone);
-      if (seller.phone)
-        await recordContactClick(p._id, "phone");
-    }}
-    className="bg-blue-600 text-white px-3 py-2 rounded"
-  >
-    Phone
-  </button>
+                    {seller.company && (
+                      <p className="text-xs text-gray-500 mt-3">
+                        by <span className="font-medium">{seller.company}</span>
+                      </p>
+                    )}
 
-  <button
-    onClick={() => {
-      revealContact(p._id, "email", seller.email);
-      if (seller.email)
-        recordContactClick(p._id, "email");
-    }}
-    className="bg-emerald-600 text-white px-3 py-2 rounded"
-  >
-    Email
-  </button>
+                    <div className="flex gap-2 mt-6">
+                      <button
+                        onClick={async () => {
+                          revealContact(p._id, "phone", seller.phone);
+                          if (seller.phone) await recordContactClick(p._id, "phone");
+                        }}
+                        className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                      >
+                        Phone
+                      </button>
 
-  {seller.website && (
-    <button
-      onClick={() => {
-        revealContact(p._id, "website", seller.website);
-        recordContactClick(p._id, "website");
-      }}
-      className="bg-purple-600 text-white px-3 py-2 rounded"
-    >
-      Website
-    </button>
-  )}
-</div>
+                      <button
+                        onClick={() => {
+                          revealContact(p._id, "email", seller.email);
+                          if (seller.email) recordContactClick(p._id, "email");
+                        }}
+                        className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+                      >
+                        Email
+                      </button>
+
+                      {seller.website && (
+                        <button
+                          onClick={() => {
+                            revealContact(p._id, "website", seller.website);
+                            recordContactClick(p._id, "website");
+                          }}
+                          className="flex-1 bg-purple-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-purple-700 transition"
+                        >
+                          Website
+                        </button>
+                      )}
+                    </div>
 
                     {revealedContact?.productId === p._id && (
-                      <div className="mt-3">
-{revealedContact?.productId === p._id && (
-  <div className="mt-3 text-sm text-gray-700">
-    <strong>{revealedContact.type.toUpperCase()}:</strong>{" "}
-    {revealedContact.value}
-  </div>
-)}
+                      <div className="mt-3 text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border">
+                        <strong>{revealedContact.type.toUpperCase()}:</strong>{" "}
+                        {revealedContact.value}
                       </div>
                     )}
                   </div>

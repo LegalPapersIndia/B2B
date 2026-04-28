@@ -54,10 +54,11 @@ export default function CategoryShowcase() {
             slug: cat.name,
             name: fallback?.name || cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
             desc: cat.description || fallback?.desc || "Premium quality products",
-            image: cat.image ? (cat.image.startsWith('http') ? cat.image : `${API_BASE_URL.replace('/api', '')}${cat.image}`) : (fallback?.image || "https://picsum.photos/id/20/600/400"),
+            image: cat.image 
+              ? (cat.image.startsWith('http') ? cat.image : `${API_BASE_URL.replace('/api', '')}${cat.image}`) 
+              : (fallback?.image || "https://picsum.photos/id/20/600/400"),
           };
         });
-
         setAllCategories(merged);
       }
     } catch {
@@ -99,16 +100,8 @@ export default function CategoryShowcase() {
       alert("Subcategory not available for this product");
       return;
     }
-
-    if (!isSignedIn) {
-      navigate("/login");
-      return;
-    }
-
-    if (!isProfileComplete) {
-      navigate("/complete-profile");
-      return;
-    }
+    if (!isSignedIn) return navigate("/login");
+    if (!isProfileComplete) return navigate("/complete-profile");
 
     navigate(`/category/${encodeURIComponent(product.category)}/subcategory/${encodeURIComponent(product.subcategory)}`);
   };
@@ -137,17 +130,18 @@ export default function CategoryShowcase() {
               viewport={{ once: true }}
               className="scroll-mt-16"
             >
+              {/* Category Header */}
               <div className="relative h-[260px] md:h-[300px] rounded-2xl overflow-hidden shadow-md mb-8 group">
-                <img
-                  src={category.image}
-                  alt={category.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                <img 
+                  src={category.image} 
+                  alt={category.name} 
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/60 to-transparent" />
                 <div className="absolute inset-0 p-6 md:p-10 flex flex-col justify-end">
                   <div className="max-w-lg">
                     <span className="inline-block px-3 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-full mb-3">
-                      {products.length} Products
+                      {products.length} Subcategories
                     </span>
                     <h3 className="text-3xl font-bold text-white mb-2">{category.name}</h3>
                     <p className="text-slate-200 text-sm md:text-base line-clamp-2 mb-4">{category.desc}</p>
@@ -161,6 +155,7 @@ export default function CategoryShowcase() {
                 </div>
               </div>
 
+              {/* Product Cards - Without Premium Badge */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {loading
                   ? []
@@ -170,26 +165,31 @@ export default function CategoryShowcase() {
                         initial={{ opacity: 0, y: 15 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.04 }}
-                        className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all"
+                        className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all relative overflow-hidden"
                       >
+                        {/* Subcategory Image */}
                         <div className="relative aspect-square overflow-hidden bg-slate-100">
                           <img
                             src={product.images?.[0] || "https://picsum.photos/id/20/600/400"}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                            alt={product.subcategory}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         </div>
+
+                        {/* Subcategory Content */}
                         <div className="p-4">
-                          <h5 className="font-semibold line-clamp-2 mb-1">{product.name}</h5>
-                          <p className="text-xs text-slate-500 mb-2">by {product.sellerCompany || "Unknown Supplier"}</p>
-                          <p className="text-lg font-bold">Rs {product.price?.toLocaleString("en-IN")}</p>
-                          <p className="text-xs text-slate-500 mt-1">Subcategory: {product.subcategory || "N/A"}</p>
+                          <h5 className="font-semibold text-lg line-clamp-2 mb-3 text-slate-800">
+                            {product.subcategory 
+                              ? product.subcategory.charAt(0).toUpperCase() + product.subcategory.slice(1)
+                              : "Uncategorized"}
+                          </h5>
 
                           <button
                             onClick={() => handleExploreSubcategory(product)}
-                            className="mt-3 w-full py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all"
+                            className="mt-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
                           >
                             Explore Subcategory
+                            <ArrowRight className="w-4 h-4" />
                           </button>
                         </div>
                       </motion.div>
