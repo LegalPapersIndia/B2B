@@ -4,7 +4,8 @@ import Login from './components/Login';
 import Companies from './components/Companies';
 import Products from './components/Products';
 import Enquiries from './components/Enquiries';
-import Categories from './components/Categories';   // ← New
+import OtherEnquiries from './components/OtherEnquiries';
+import Categories from './components/Categories';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/products" element={isLoggedIn ? <Products /> : <Navigate to="/login" />} />
         <Route path="/categories" element={isLoggedIn ? <Categories /> : <Navigate to="/login" />} />
         <Route path="/enquiries" element={isLoggedIn ? <Enquiries /> : <Navigate to="/login" />} />
+        <Route path="/other-enquiries" element={isLoggedIn ? <OtherEnquiries /> : <Navigate to="/login" />} />
         <Route path="*" element={<Navigate to="/companies" />} />
       </Routes>
     </Router>

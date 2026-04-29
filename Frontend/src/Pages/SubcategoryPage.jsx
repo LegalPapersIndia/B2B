@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Star } from "lucide-react";
+import { ArrowLeft, Building2, Star } from "lucide-react";
 import axios from "axios";
 import { useAppAuth } from "../context/AuthContext";
 
@@ -165,9 +165,22 @@ function SubcategoryPage() {
                     <p className="text-sm text-gray-500 mt-1">MOQ: {p.moq || "N/A"}</p>
 
                     {seller.company && (
-                      <p className="text-xs text-gray-500 mt-3">
-                        by <span className="font-medium">{seller.company}</span>
-                      </p>
+                      <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                        {seller.avatar ? (
+                          <img
+                            src={seller.avatar}
+                            alt={seller.company}
+                            className="w-8 h-8 rounded-lg object-cover border border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+                            <Building2 className="w-4 h-4 text-gray-400" />
+                          </div>
+                        )}
+                        <span>
+                          by <span className="font-medium">{seller.company}</span>
+                        </span>
+                      </div>
                     )}
 
                     <div className="flex gap-2 mt-6">

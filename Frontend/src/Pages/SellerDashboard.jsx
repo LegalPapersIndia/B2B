@@ -808,15 +808,44 @@ const handleProfileSubmit = async (e) => {
                   <div key={enq._id} className="p-8 hover:bg-gray-50 transition">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-xl">{enq.productId?.name}</h3>
-                        <p className="text-emerald-600 font-medium">
-                          Rs {enq.productId?.price?.toLocaleString('en-IN')}
-                        </p>
+                        <h3 className="font-semibold text-xl">
+                          {enq.productId?.name || enq.productName || "Buy Requirement"}
+                        </h3>
+                        {enq.productId?.price ? (
+                          <p className="text-emerald-600 font-medium">
+                            Rs {enq.productId.price.toLocaleString('en-IN')}
+                          </p>
+                        ) : (
+                          <p className="text-amber-600 font-medium">
+                            Forwarded by Super Admin
+                          </p>
+                        )}
                       </div>
                       <span className={`px-5 py-1.5 rounded-full text-sm font-medium ${getStatusClasses(enq.status)}`}>
                         {enq.status.toUpperCase()}
                       </span>
                     </div>
+
+                    {enq.enquiryType === "other_requirement" && (
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                          <span className="text-amber-700 block">Category</span>
+                          <span className="font-semibold">{enq.category || "-"}</span>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                          <span className="text-amber-700 block">Subcategory</span>
+                          <span className="font-semibold">{enq.subcategory || "-"}</span>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                          <span className="text-amber-700 block">Quantity</span>
+                          <span className="font-semibold">{enq.quantity || "-"}</span>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                          <span className="text-amber-700 block">GST</span>
+                          <span className="font-semibold">{enq.gstNumber || "-"}</span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-6 bg-gray-50 p-5 rounded-2xl border border-gray-100">
                       <p className="font-medium text-gray-700 mb-3">Buyer Information</p>

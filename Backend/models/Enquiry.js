@@ -4,12 +4,12 @@ const enquirySchema = new mongoose.Schema({
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
-    required: true,
+    default: null,
   },
 
   buyerClerkId: {
     type: String,
-    required: true,
+    default: '',
     index: true,
   },
 
@@ -42,8 +42,8 @@ const enquirySchema = new mongoose.Schema({
 
   sellerName: {
     type: String,
-    required: true,
     trim: true,
+    default: '',
   },
   sellerEmail: {
     type: String,
@@ -74,9 +74,60 @@ const enquirySchema = new mongoose.Schema({
   },
   enquiryType: {
     type: String,
-    enum: ['message', 'contact_click'],
+    enum: ['message', 'contact_click', 'other_requirement'],
     default: 'message',
     index: true,
+  },
+  productName: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  category: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  subcategory: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  quantity: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  gstNumber: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  assignedSellerClerkId: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true,
+  },
+  assignedSellerIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Seller',
+  }],
+  assignedSellerClerkIds: {
+    type: [String],
+    trim: true,
+    index: true,
+  },
+  assignedSellerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Seller',
+    default: null,
+  },
+  forwardedAt: Date,
+  forwardedBy: {
+    type: String,
+    trim: true,
+    default: '',
   },
   contactMethod: {
     type: String,

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Boxes, Globe, Mail, MapPin, Phone, Tag } from 'lucide-react';
+import { ArrowLeft, Boxes, Building2, Globe, Mail, MapPin, Phone, Tag } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
@@ -76,7 +76,20 @@ export default function CompanyDetail() {
                 Premium Seller
               </div>
             )}
-            <h1 className="mt-3 text-4xl md:text-5xl font-bold">{company.company}</h1>
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
+              {company.avatar ? (
+                <img
+                  src={company.avatar}
+                  alt={company.company}
+                  className="w-20 h-20 rounded-3xl object-cover border border-white/40 bg-white"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-3xl bg-white/15 border border-white/30 flex items-center justify-center">
+                  <Building2 className="w-10 h-10 text-white" />
+                </div>
+              )}
+              <h1 className="text-4xl md:text-5xl font-bold">{company.company}</h1>
+            </div>
             <p className="mt-3 text-emerald-50 text-lg">
               {company.name ? `Primary contact: ${company.name}` : 'Registered business on our marketplace'}
             </p>
@@ -211,6 +224,20 @@ export default function CompanyDetail() {
                       </span>
                     </div>
                     <h3 className="text-xl font-semibold text-slate-900 line-clamp-2">{product.name}</h3>
+                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                      {company.avatar ? (
+                        <img
+                          src={company.avatar}
+                          alt={company.company}
+                          className="w-8 h-8 rounded-lg object-cover border border-slate-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                          <Building2 className="w-4 h-4 text-slate-400" />
+                        </div>
+                      )}
+                      <span>{company.company}</span>
+                    </div>
                     <p className="mt-3 text-2xl font-bold text-emerald-700">
                       Rs {Number(product.price || 0).toLocaleString('en-IN')}
                     </p>

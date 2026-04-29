@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Mail, Phone, Star, ArrowRight, Boxes, MapPin } from 'lucide-react';
+import { Mail, Phone, Star, ArrowRight, Boxes, MapPin, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -83,6 +83,20 @@ export default function Companies() {
               <div className="h-2 bg-gradient-to-r from-emerald-600 to-teal-600" />
 
               <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  {company.avatar ? (
+                    <img
+                      src={company.avatar}
+                      alt={company.company || company.name}
+                      className="w-16 h-16 rounded-2xl object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center">
+                      <Building2 className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+
                 {company.isPremium && (
                   <div className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-semibold mb-3">
                     Premium Seller

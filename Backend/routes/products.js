@@ -150,7 +150,7 @@ router.get('/', async (req, res) => {
 
     // 🔥 Important: isPremium field add kiya
     const sellers = await Seller.find({ clerkId: { $in: clerkIds } })
-      .select('clerkId name company email phone website isPremium')   // ← isPremium add kiya
+      .select('clerkId name company email phone website avatar isPremium')   // ← isPremium add kiya
       .lean();
 
     const sellerMap = new Map(sellers.map((s) => [s.clerkId, s]));
@@ -166,6 +166,7 @@ router.get('/', async (req, res) => {
               email: seller.email || '',
               phone: seller.phone || '',
               website: seller.website || '',
+              avatar: seller.avatar || '',
               isPremium: seller.isPremium === true,        // ← Yeh line ab sahi se aayegi
             }
           : null,

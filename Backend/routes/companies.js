@@ -32,6 +32,7 @@ function formatCompanyPayload(seller, extras = {}) {
     email: seller.email || '',
     phone: seller.phone || '',
     website: seller.website || '',
+    avatar: seller.avatar || '',
     address: seller.address || '',
     city: seller.city || '',
     state: seller.state || '',

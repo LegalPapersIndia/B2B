@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRight, Building2, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAppAuth } from "../context/AuthContext";
 
@@ -183,6 +183,22 @@ export default function CategoryShowcase() {
                               ? product.subcategory.charAt(0).toUpperCase() + product.subcategory.slice(1)
                               : "Uncategorized"}
                           </h5>
+                          {product.seller?.company && (
+                            <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">
+                              {product.seller.avatar ? (
+                                <img
+                                  src={product.seller.avatar}
+                                  alt={product.seller.company}
+                                  className="w-7 h-7 rounded-lg object-cover border border-slate-200"
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                </div>
+                              )}
+                              <span className="truncate">{product.seller.company}</span>
+                            </div>
+                          )}
 
                           <button
                             onClick={() => handleExploreSubcategory(product)}

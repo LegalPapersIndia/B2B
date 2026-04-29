@@ -150,6 +150,7 @@ async function getEnrichedProduct(product) {
           phone: seller.phone,
           company: seller.company,
           website: seller.website,
+          avatar: seller.avatar,
           address: seller.address,
         }
       : null,
@@ -321,7 +322,7 @@ router.delete('/categories/:id', async (req, res) => {
 router.get('/users', async (req, res) => {
   try {
     const users = await Seller.find()
-      .select('clerkId name email phone company website address city state country gstNumber profileCompletedAt createdAt updatedAt')
+      .select('clerkId name email phone company website address city state country gstNumber avatar profileCompletedAt createdAt updatedAt')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, users });
@@ -376,7 +377,7 @@ router.put('/users/:id', async (req, res) => {
 router.get('/companies', async (req, res) => {
   try {
     const companies = await Seller.find()
-      .select('name company email phone gstNumber address city state country createdAt isPremium')
+      .select('name company email phone gstNumber address city state country avatar createdAt isPremium')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, companies });
@@ -463,7 +464,7 @@ router.put('/companies/:id', async (req, res) => {
     const updated = await Seller.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
-    }).select('name company email phone gstNumber address city state country createdAt isPremium');
+    }).select('name company email phone gstNumber address city state country avatar createdAt isPremium');
 
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Company not found' });
@@ -678,6 +679,7 @@ router.get('/enquiries', async (req, res) => {
               phone: seller.phone,
               company: seller.company,
               website: seller.website,
+              avatar: seller.avatar,
               address: seller.address,
             }
           : null,
@@ -688,6 +690,77 @@ router.get('/enquiries', async (req, res) => {
   } catch (err) {
     console.error('Enquiries fetch error:', err);
     res.status(500).json({ success: false, message: 'Failed to fetch enquiries' });
+  }
+});
+
+router.get('/other-enquiries', async (req, res) => {
+  try {
+    const enquiries = await Enquiry.find({ enquiryType: 'other_requirement' })
+      .populate('assignedSellerIds', 'name company email phone avatar clerkId')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ success: true, enquiries });
+  } catch (err) {
+    console.error('Other enquiries fetch error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch other enquiries' });
+  }
+});
+
+router.put('/other-enquiries/:id/forward', async (req, res) => {
+  try {
+    let sellerIds = req.body.sellerIds;
+    if (!sellerIds || !Array.isArray(sellerIds)) {
+      sellerIds = [String(req.body.sellerId || '').trim()]; // backward compat
+    }
+    sellerIds = sellerIds.map(id => String(id).trim()).filter(Boolean);
+    if (sellerIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'At least one seller is required' });
+    }
+
+    const sellers = await Seller.find({ _id: { $in: sellerIds } }).lean();
+    if (sellers.length !== sellerIds.length) {
+      return res.status(400).json({ success: false, message: 'One or more sellers not found' });
+    }
+
+    const sellerClerkIds = sellers.map(s => s.clerkId);
+    const firstSeller = sellers[0];
+
+    const enquiry = await Enquiry.findOneAndUpdate(
+      { _id: req.params.id, enquiryType: 'other_requirement' },
+      {
+        $addToSet: {
+          assignedSellerIds: { $each: sellers.map(s => s._id) },
+          assignedSellerClerkIds: { $each: sellerClerkIds },
+        },
+        $set: {
+          assignedSellerId: firstSeller._id,
+          assignedSellerClerkId: firstSeller.clerkId,
+          sellerName: firstSeller.name || '',
+          sellerEmail: firstSeller.email || '',
+          sellerPhone: firstSeller.phone || '',
+          sellerCompany: firstSeller.company || '',
+          sellerWebsite: firstSeller.website || '',
+          forwardedAt: new Date(),
+          forwardedBy: req.adminId || 'admin',
+          status: 'pending',
+        },
+      },
+      { new: true, runValidators: true }
+    ).populate('assignedSellerIds', 'name company email phone avatar clerkId');
+
+    if (!enquiry) {
+      return res.status(404).json({ success: false, message: 'Other enquiry not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Enquiry forwarded successfully',
+      enquiry,
+    });
+  } catch (err) {
+    console.error('Forward other enquiry error:', err);
+    res.status(500).json({ success: false, message: 'Failed to forward enquiry' });
   }
 });
 

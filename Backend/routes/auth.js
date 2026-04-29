@@ -5,6 +5,7 @@ const multer = require('multer');
 const Seller = require('../models/Seller');
 const { requireSellerAuth } = require('../middleware/requireSellerAuth');
 const { buildSellerLookupFromAuth } = require('../utils/sellerIdentity');
+const { uploadBufferToCloudinary } = require('../utils/cloudinary');
 
 // ===================== MULTER SETUP =====================
 const upload = multer({
@@ -194,13 +195,9 @@ router.post(
       let avatarUrl = existingUser?.avatar;
       if (req.file) {
         try {
-          const uploadToCloudinary = require('../utils/cloudinary'); // Change path if needed
-          const uploadResult = await uploadToCloudinary(req.file.buffer, {
+          avatarUrl = await uploadBufferToCloudinary(req.file.buffer, {
             folder: 'seller-profiles',
-            public_id: `seller_${sellerId}`,
-            overwrite: true,
           });
-          avatarUrl = uploadResult.secure_url;
         } catch (uploadErr) {
           console.error('Cloudinary upload failed:', uploadErr);
         }

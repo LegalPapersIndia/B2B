@@ -3,6 +3,10 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { LogIn, UserPlus, Shield, ShoppingCart, X } from "lucide-react";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api`
+  : "http://localhost:5000/api";
+
 const ActionSidebar = ({ onWantToBuyClick, isFullScreen = false, onClose }) => {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,10 +32,19 @@ const ActionSidebar = ({ onWantToBuyClick, isFullScreen = false, onClose }) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    console.log("Buy Requirement Submitted:", formData);
+    try {
+    const res = await fetch(`${API_BASE_URL}/enquiries/other`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+    const data = await res.json();
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    if (!res.ok) {
+      setIsSubmitting(false);
+      alert(data.error || data.message || "Failed to submit requirement");
+      return;
+    }
 
     alert("✅ Thank you! Your buy requirement has been submitted successfully.\nWe will connect you with relevant sellers soon.");
 
@@ -45,6 +58,10 @@ const ActionSidebar = ({ onWantToBuyClick, isFullScreen = false, onClose }) => {
         productName: "", category: "", subcategory: "", quantity: "",
         description: "", gstNumber: "", buyerName: "", buyerEmail: "", buyerPhone: ""
       });
+    }
+    } catch (err) {
+      setIsSubmitting(false);
+      alert(err.message || "Failed to submit requirement. Please try again.");
     }
   };
 
@@ -137,18 +154,6 @@ const ActionSidebar = ({ onWantToBuyClick, isFullScreen = false, onClose }) => {
                 onChange={handleInputChange}
                 placeholder="e.g. 5 Tons, 10,000 Pieces, 2 Containers"
                 className="w-full px-5 py-4 text-base border border-gray-300 rounded-2xl focus:outline-none focus:border-amber-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-lg font-medium text-gray-800 mb-2">GST Number (Optional)</label>
-              <input
-                type="text"
-                name="gstNumber"
-                value={formData.gstNumber}
-                onChange={handleInputChange}
-                placeholder="22AAAAA0000A1Z5"
-                className="w-full px-5 py-4 text-base border border-gray-300 rounded-2xl focus:outline-none focus:border-amber-600 uppercase"
               />
             </div>
 

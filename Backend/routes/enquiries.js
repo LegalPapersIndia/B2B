@@ -206,19 +206,81 @@ router.post('/contact-click', requireAuth, requireCompletedProfile, async (req, 
   }
 });
 
+router.post('/other', async (req, res) => {
+  try {
+    const productName = String(req.body.productName || '').trim();
+    const buyerName = String(req.body.buyerName || '').trim();
+    const buyerEmail = String(req.body.buyerEmail || '').trim().toLowerCase();
+    const buyerPhone = String(req.body.buyerPhone || '').trim();
+
+    if (!productName || !buyerName || !buyerEmail || !buyerPhone) {
+      return res.status(400).json({
+        error: 'Product name, buyer name, email and phone are required',
+      });
+    }
+
+    const enquiry = await Enquiry.create({
+      productId: null,
+      buyerClerkId: '',
+      buyerName,
+      buyerEmail,
+      buyerPhone,
+      buyerCompany: '',
+      buyerWebsite: '',
+      sellerName: '',
+      sellerEmail: '',
+      sellerPhone: '',
+      sellerCompany: '',
+      sellerWebsite: '',
+      productName,
+      category: String(req.body.category || '').trim(),
+      subcategory: String(req.body.subcategory || '').trim(),
+      quantity: String(req.body.quantity || '').trim(),
+      gstNumber: String(req.body.gstNumber || '').trim().toUpperCase(),
+      message: String(req.body.description || req.body.message || '').trim() || 'Buy requirement submitted from Action Sidebar',
+      enquiryType: 'other_requirement',
+      status: 'pending',
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Buy requirement submitted successfully',
+      enquiry,
+    });
+  } catch (err) {
+    console.error('OTHER ENQUIRY ERROR:', err);
+    res.status(500).json({
+      error: 'Failed to submit buy requirement',
+      details: err.message,
+    });
+  }
+});
+
 router.get('/my', requireAuth, async (req, res) => {
   try {
     const sellerIdentityCandidates = getAuthIdentityCandidates(req);
 
-    const enquiries = await Enquiry.find()
-      .populate({
+    const productEnquiries = await Enquiry.find({
+      enquiryType: { $ne: 'other_requirement' },
+    }).populate({
         path: 'productId',
         select: 'name price images category clerkId',
         match: { clerkId: { $in: sellerIdentityCandidates } },
       })
       .sort({ createdAt: -1 });
 
-    const filtered = enquiries.filter((e) => e.productId !== null);
+    const forwardedEnquiries = await Enquiry.find({
+      enquiryType: 'other_requirement',
+      $or: [
+        { assignedSellerClerkId: { $in: sellerIdentityCandidates } },
+        { assignedSellerClerkIds: { $in: sellerIdentityCandidates } }
+      ]
+    }).sort({ createdAt: -1 });
+
+    const filtered = productEnquiries
+      .filter((e) => e.productId !== null)
+      .concat(forwardedEnquiries)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     res.json(filtered);
   } catch (err) {
@@ -241,11 +303,18 @@ router.patch('/my/:id/status', requireAuth, async (req, res) => {
       select: 'clerkId',
     });
 
-    if (!enquiry || !enquiry.productId) {
+    if (!enquiry) {
       return res.status(404).json({ error: 'Enquiry not found' });
     }
 
-    if (!sellerIdentityCandidates.includes(String(enquiry.productId.clerkId || ''))) {
+    const ownsProductEnquiry = enquiry.productId
+      ? sellerIdentityCandidates.includes(String(enquiry.productId.clerkId || ''))
+      : false;
+    const ownsForwardedEnquiry = enquiry.enquiryType === 'other_requirement' &&
+      (sellerIdentityCandidates.includes(String(enquiry.assignedSellerClerkId || '')) ||
+       (enquiry.assignedSellerClerkIds && enquiry.assignedSellerClerkIds.some(id => sellerIdentityCandidates.includes(String(id)))));
+
+    if (!ownsProductEnquiry && !ownsForwardedEnquiry) {
       return res.status(403).json({ error: 'You are not allowed to update this enquiry' });
     }
 

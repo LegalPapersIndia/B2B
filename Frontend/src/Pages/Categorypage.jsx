@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Star } from "lucide-react";
+import { ArrowLeft, Building2, Star } from "lucide-react";
 import axios from "axios";
 import { useAppAuth } from "../context/AuthContext";
 
@@ -180,9 +180,22 @@ export default function CategoryPage() {
                 <p className="text-xs text-slate-500 mt-1">Subcategory: {p.subcategory || "N/A"}</p>
 
                 {p.seller?.company && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    by <span className="font-medium">{p.seller.company}</span>
-                  </p>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                    {p.seller?.avatar ? (
+                      <img
+                        src={p.seller.avatar}
+                        alt={p.seller.company}
+                        className="w-8 h-8 rounded-lg object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+                        <Building2 className="w-4 h-4 text-gray-400" />
+                      </div>
+                    )}
+                    <span>
+                      by <span className="font-medium">{p.seller.company}</span>
+                    </span>
+                  </div>
                 )}
 
                 <button
