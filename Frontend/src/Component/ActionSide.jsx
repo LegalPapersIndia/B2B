@@ -240,7 +240,7 @@ const ActionSidebar = ({ onWantToBuyClick, isFullScreen = false, onClose }) => {
           </Link>
 
           <Link
-            to="/register"
+            to="/login"
             className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
           >
             <UserPlus className="w-5 h-5" />
