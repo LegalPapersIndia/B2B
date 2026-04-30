@@ -3,10 +3,10 @@ const router = express.Router();
 const Category = require('../models/Category');
 
 const allowedCategories = [
-  'medicine', 'cosmetics', 'personal-care', 'food', 'beverages',
-  'confectionery', 'daily-use', 'home-kitchen', 'construction',
-  'machinery', 'electrical', 'apparel', 'textiles', 'electronics',
-  'automotive', 'agriculture', 'packaging', 'pet-supplies'
+    'medicine', 'cosmetics', 'personal-care', 'food', 'beverages',
+    'confectionery', 'daily-use', 'home-kitchen', 'construction',
+    'machinery', 'electrical', 'apparel', 'textiles', 'electronics',
+    'automotive', 'agriculture', 'packaging', 'pet-supplies'
 ];
 
 function normalizeCategorySubcategories(input) {
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
       ...dbCategories.map((cat) => cat.name),
     ])].sort();
 
-    const categories = allNames.map((name) => {
+const categories = allNames.map((name) => {
       const dbCat = dbMap.get(name);
       const normalizedSubcategories = normalizeCategorySubcategories(dbCat?.subcategories);
       return {
@@ -40,7 +40,10 @@ router.get('/', async (req, res) => {
         name,
         description: dbCat?.description || '',
         image: dbCat?.image || '',
-        subcategories: normalizedSubcategories,
+        subcategories: normalizedSubcategories.map((sub) => ({
+          name: sub.name,
+          referenceImage: sub.referenceImage || '',
+        })),
       };
     });
 

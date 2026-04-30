@@ -119,16 +119,28 @@ const ActionSidebar = ({ onWantToBuyClick, isFullScreen = false, onClose }) => {
                   required
                   className="w-full px-5 py-4 text-base border border-gray-300 rounded-2xl focus:outline-none focus:border-amber-600 bg-white"
                 >
-                  <option value="">Select Category</option>
-                  <option value="plastics">Plastics & Polymers</option>
-                  <option value="pharma">Pharmaceuticals</option>
-                  <option value="cosmetics">Cosmetics & Personal Care</option>
-                  <option value="packaging">Packaging Materials</option>
-                  <option value="textiles">Textiles & Apparel</option>
-                  <option value="electronics">Electronics</option>
-                  <option value="construction">Construction Materials</option>
-                  <option value="food">Food & Beverages</option>
-                  <option value="other">Other</option>
+<option value="">Select Category</option>
+<option value="plastics">Plastics & Polymers</option>
+<option value="pharma">Pharmaceuticals</option>
+<option value="cosmetics">Cosmetics & Personal Care</option>
+<option value="packaging">Packaging Materials</option>
+<option value="textiles">Textiles & Apparel</option>
+<option value="electronics">Electronics</option>
+<option value="construction">Construction Materials</option>
+<option value="food">Food & Beverages</option>
+<option value="medicine">Medicine</option>
+<option value="personal-care">Personal Care</option>
+<option value="beverages">Beverages</option>
+<option value="confectionery">Confectionery</option>
+<option value="daily-use">Daily Use</option>
+<option value="home-kitchen">Home & Kitchen</option>
+<option value="machinery">Machinery</option>
+<option value="electrical">Electrical</option>
+<option value="apparel">Apparel</option>
+<option value="automotive">Automotive</option>
+<option value="agriculture">Agriculture</option>
+<option value="pet-supplies">Pet Supplies</option>
+<option value="other">Other</option>
                 </select>
               </div>
 
@@ -238,7 +250,6 @@ const ActionSidebar = ({ onWantToBuyClick, isFullScreen = false, onClose }) => {
             <LogIn className="w-5 h-5" />
             Login to Dashboard
           </Link>
-
           <Link
             to="/login"
             className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
@@ -246,7 +257,6 @@ const ActionSidebar = ({ onWantToBuyClick, isFullScreen = false, onClose }) => {
             <UserPlus className="w-5 h-5" />
             Create Free Account
           </Link>
-
           <button
             onClick={onWantToBuyClick}
             className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"

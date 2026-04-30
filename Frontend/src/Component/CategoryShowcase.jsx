@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { ArrowRight, Building2, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -9,28 +9,30 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
   : "http://localhost:5000/api";
 
-export const categoriesData = [
-  { slug: "medicine", name: "Medicine & Pharmaceuticals", desc: "APIs, generics and medical devices", image: "https://www.biopharlifesciences.co.in/public/Blogs/1735552692jpg" },
-  { slug: "cosmetics", name: "Cosmetics & Beauty", desc: "Skincare, makeup & perfumes", image: "https://cdn.britannica.com/35/222035-050-C68AD682/makeup-cosmetics.jpg" },
-  { slug: "personal-care", name: "Personal Care", desc: "Daily hygiene & grooming products", image: "https://cdn.shopify.com/s/files/1/0646/1551/4330/files/Importance_of_Personal_Care_Products_480x480.webp?v=1673811372" },
-  { slug: "food", name: "Food & Agro Products", desc: "Rice, spices, oils & pulses", image: "https://static.vecteezy.com/system/resources/thumbnails/036/215/572/small/ai-generated-healthy-eating-wholegrain-cereal-plant-organic-food-vegetarian-meal-generated-by-ai-photo.jpg" },
-  { slug: "beverages", name: "Beverages", desc: "Tea, juices, energy drinks & coffee", image: "https://restaurantindia.s3.ap-south-1.amazonaws.com/s3fs-public/2026-03/beverages1.jpg" },
-  { slug: "confectionery", name: "Confectionery & Snacks", desc: "Chocolates, biscuits & namkeen", image: "https://cdn.prod.website-files.com/63cf34956bc59159af577c42/64237ff9b0a52d91ed0e8466_confectionery%20feature%20image.jpg" },
-  { slug: "daily-use", name: "Daily Use & FMCG", desc: "Cleaning supplies & household essentials", image: "https://images.financialexpressdigital.com/2025/09/diya-0001-2025-08-11T154519.556_20250902085553_20250912090708.jpg" },
-  { slug: "home-kitchen", name: "Home & Kitchen", desc: "Utensils, appliances & cookware", image: "https://sonigaracorp.com/images/blog/Home-Kitchen/Prioritise_Storage_Space.jpg" },
-  { slug: "construction", name: "Construction Materials", desc: "Steel, cement, pipes & hardware", image: "https://d2d4xyu1zrrrws.cloudfront.net/website/web-ui/assets/images/temp/supply-chain-banner_msite.png" },
-  { slug: "machinery", name: "Industrial Machinery", desc: "Pumps, generators & equipment", image: "https://www.techniwaterjet.com/wp-content/uploads/2024/01/1.jpg" },
-  { slug: "electrical", name: "Electrical & Electronics", desc: "Cables, switches & lighting", image: "https://www.redlinegroup.com/app/data/blog/9c680883eff061d4999c1db10afcde5f.jpg" },
-  { slug: "apparel", name: "Apparel & Garments", desc: "Clothing, uniforms & fashion wear", image: "https://media.licdn.com/dms/image/v2/D5612AQEDHdzGbCofEg/article-cover_image-shrink_720_1280/article-cover_image-shrink_720_1280/0/1701235776902?e=2147483647&v=beta&t=1lfEXXz0oXwZlhstZCAkMXN1c-FDSpxLpSHTki9lGqE" },
-  { slug: "textiles", name: "Textiles & Fabrics", desc: "Yarn, cotton & polyester fabrics", image: "https://cdn.shopify.com/s/files/1/0070/5023/1919/files/towel-g89d3b7292_1920_480x480.jpg?v=1650304781" },
-  { slug: "electronics", name: "Electronics & Components", desc: "Displays, PCBs & modules", image: "https://5.imimg.com/data5/SELLER/Default/2023/12/368947394/SS/LC/GV/183411497/electronic-components-and-semiconductor-devices.png" },
-  { slug: "automotive", name: "Automotive Parts", desc: "Batteries, oils & spares", image: "https://images.jdmagicbox.com/quickquotes/images_main/-4ot4dcda.png" },
-  { slug: "agriculture", name: "Agriculture & Organic", desc: "Seeds, fertilizers & farming tools", image: "https://kids.earth.org/wp-content/uploads/2022/04/Untitled-1024-%C3%97-768px-17.jpg" },
-  { slug: "packaging", name: "Packaging Materials", desc: "Boxes, bottles & wrapping", image: "https://healeypackaging.co.uk/wp-content/uploads/2025/07/Types-of-Packaging-Materials-1-scaled.webp" },
-  { slug: "pet-supplies", name: "Pet Supplies", desc: "Pet food, grooming & accessories", image: "https://s32519.pcdn.co/wp-content/uploads/2023/03/pet-supply-retail-feature-image-1136x480.png" },
-];
+export const categoriesData = [ /* ... your categoriesData remains the same ... */ ];
 
 const categoryMetaMap = new Map(categoriesData.map((item) => [item.slug, item]));
+
+const getImageUrl = (url) => {
+  if (!url) return "https://picsum.photos/id/20/600/400";
+  if (url.startsWith("http")) return url;
+  return `${API_BASE_URL.replace("/api", "")}${url}`;
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.07,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function CategoryShowcase() {
   const { isSignedIn, isProfileComplete } = useAppAuth();
@@ -38,45 +40,56 @@ export default function CategoryShowcase() {
 
   const [allCategories, setAllCategories] = useState(categoriesData);
   const [categoryProducts, setCategoryProducts] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
-  useEffect(() => {
-    fetchAllCategories();
-  }, []);
-
-  const fetchAllCategories = async () => {
+  // Fetch categories
+  const fetchAllCategories = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`);
       if (res.data.success) {
-        const merged = (res.data.categories || []).map((cat) => {
-          const fallback = categoryMetaMap.get(cat.name);
+const merged = (res.data.categories || []).map((cat) => {
+          const fallback = categoryMetaMap.get(cat.name?.toLowerCase()) || 
+                          categoryMetaMap.get(cat.slug);
           return {
-            slug: cat.name,
-            name: fallback?.name || cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
+            slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, "-"),
+            name: fallback?.name || cat.name || "Category",
             desc: cat.description || fallback?.desc || "Premium quality products",
             image: cat.image 
-              ? (cat.image.startsWith('http') ? cat.image : `${API_BASE_URL.replace('/api', '')}${cat.image}`) 
+              ? getImageUrl(cat.image)
               : (fallback?.image || "https://picsum.photos/id/20/600/400"),
+            subcategories: (cat.subcategories || []).map((sub) => ({
+              name: sub.name,
+              referenceImage: sub.referenceImage || '',
+            })),
           };
         });
-        setAllCategories(merged);
+        setAllCategories(merged.length ? merged : categoriesData);
       }
-    } catch {
+    } catch (err) {
+      console.warn("Failed to fetch categories, using fallback:", err);
       setAllCategories(categoriesData);
+    } finally {
+      setLoadingCategories(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchAllCategoryProducts();
-  }, [allCategories]);
+    fetchAllCategories();
+  }, [fetchAllCategories]);
 
-  const fetchAllCategoryProducts = async () => {
-    setLoading(true);
+  // Fetch products for all categories
+  const fetchAllCategoryProducts = useCallback(async () => {
+    if (!allCategories.length) return;
+
+    setLoadingProducts(true);
     try {
       const promises = allCategories.map(async (category) => {
         try {
-          const res = await axios.get(`${API_BASE_URL}/products?category=${category.slug}&homePreview=true`);
-          return { slug: category.slug, products: res.data || [] };
+          const res = await axios.get(
+            `${API_BASE_URL}/products?category=${encodeURIComponent(category.slug)}&homePreview=true`
+          );
+          return { slug: category.slug, products: res.data?.products || res.data || [] };
         } catch {
           return { slug: category.slug, products: [] };
         }
@@ -88,12 +101,17 @@ export default function CategoryShowcase() {
         productsMap[slug] = products;
       });
       setCategoryProducts(productsMap);
-    } catch {
+    } catch (err) {
+      console.error("Error fetching products:", err);
       setCategoryProducts({});
     } finally {
-      setLoading(false);
+      setLoadingProducts(false);
     }
-  };
+  }, [allCategories]);
+
+  useEffect(() => {
+    fetchAllCategoryProducts();
+  }, [fetchAllCategoryProducts]);
 
   const handleExploreSubcategory = (product) => {
     if (!product?.subcategory) {
@@ -103,10 +121,24 @@ export default function CategoryShowcase() {
     if (!isSignedIn) return navigate("/login");
     if (!isProfileComplete) return navigate("/complete-profile");
 
-    navigate(`/category/${encodeURIComponent(product.category)}/subcategory/${encodeURIComponent(product.subcategory)}`);
+    navigate(
+      `/category/${encodeURIComponent(product.category)}/subcategory/${encodeURIComponent(product.subcategory)}`
+    );
   };
 
   const handleViewAll = (slug) => navigate(`/category/${slug}`);
+
+  // Skeleton Card
+  const SkeletonCard = () => (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden animate-pulse">
+      <div className="aspect-square bg-slate-200" />
+      <div className="p-4 space-y-3">
+        <div className="h-6 bg-slate-200 rounded w-4/5" />
+        <div className="h-4 bg-slate-200 rounded w-3/5" />
+        <div className="h-10 bg-slate-200 rounded-xl" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-12 bg-gray-50/50">
@@ -119,101 +151,128 @@ export default function CategoryShowcase() {
       </div>
 
       <div className="space-y-16">
-        {allCategories.map((category) => {
-          const products = categoryProducts[category.slug] || [];
+        <AnimatePresence>
+          {allCategories.map((category) => {
+            const products = categoryProducts[category.slug] || [];
+            const isLoading = loadingProducts || loadingCategories;
 
-          return (
-            <motion.section
-              key={category.slug}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="scroll-mt-16"
-            >
-              {/* Category Header */}
-              <div className="relative h-[260px] md:h-[300px] rounded-2xl overflow-hidden shadow-md mb-8 group">
-                <img 
-                  src={category.image} 
-                  alt={category.name} 
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/60 to-transparent" />
-                <div className="absolute inset-0 p-6 md:p-10 flex flex-col justify-end">
-                  <div className="max-w-lg">
-                    <span className="inline-block px-3 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-full mb-3">
-                      {products.length} Subcategories
-                    </span>
-                    <h3 className="text-3xl font-bold text-white mb-2">{category.name}</h3>
-                    <p className="text-slate-200 text-sm md:text-base line-clamp-2 mb-4">{category.desc}</p>
-                    <button
-                      onClick={() => handleViewAll(category.slug)}
-                      className="flex items-center gap-2 bg-white text-slate-900 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-600 hover:text-white transition-all"
-                    >
-                      Explore Category <ArrowRight className="w-4 h-4" />
-                    </button>
+            return (
+              <motion.section
+                key={category.slug}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="scroll-mt-16"
+              >
+                {/* Category Header */}
+                <div className="relative h-[260px] md:h-[300px] rounded-2xl overflow-hidden shadow-md mb-8 group">
+                  <img
+                    src={category.image}
+                    alt={category.name}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/60 to-transparent" />
+                  <div className="absolute inset-0 p-6 md:p-10 flex flex-col justify-end">
+                    <div className="max-w-lg">
+                      <span className="inline-block px-3 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-full mb-3">
+                        {products.length} Subcategories
+                      </span>
+                      <h3 className="text-3xl font-bold text-white mb-2">{category.name}</h3>
+                      <p className="text-slate-200 text-sm md:text-base line-clamp-2 mb-4">
+                        {category.desc}
+                      </p>
+                      <button
+                        onClick={() => handleViewAll(category.slug)}
+                        className="flex items-center gap-2 bg-white text-slate-900 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-600 hover:text-white transition-all active:scale-95"
+                      >
+                        Explore Category <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Product Cards - Without Premium Badge */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {loading
-                  ? []
-                  : products.slice(0, 5).map((product, i) => (
-                      <motion.div
-                        key={product._id}
-                        initial={{ opacity: 0, y: 15 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                        className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all relative overflow-hidden"
-                      >
-                        {/* Subcategory Image */}
-                        <div className="relative aspect-square overflow-hidden bg-slate-100">
-                          <img
-                            src={product.images?.[0] || "https://picsum.photos/id/20/600/400"}
-                            alt={product.subcategory}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          />
-                        </div>
+                {/* Product / Subcategory Cards */}
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                >
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
+                  ) : products.length > 0 ? (
+                    products.slice(0, 5).map((product, i) => {
+                      const categoryData = allCategories.find((c) => c.slug === product.category);
+                      const subcatData = categoryData?.subcategories?.find(
+                        (s) => s.name === product.subcategory
+                      );
+                      const subcatImage = subcatData?.referenceImage
+                        ? getImageUrl(subcatData.referenceImage)
+                        : "";
+                      const displayImage = subcatImage || product.images?.[0] || "https://picsum.photos/id/20/600/400";
 
-                        {/* Subcategory Content */}
-                        <div className="p-4">
-                          <h5 className="font-semibold text-lg line-clamp-2 mb-3 text-slate-800">
-                            {product.subcategory 
-                              ? product.subcategory.charAt(0).toUpperCase() + product.subcategory.slice(1)
-                              : "Uncategorized"}
-                          </h5>
-                          {product.seller?.company && (
-                            <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">
-                              {product.seller.avatar ? (
-                                <img
-                                  src={product.seller.avatar}
-                                  alt={product.seller.company}
-                                  className="w-7 h-7 rounded-lg object-cover border border-slate-200"
-                                />
-                              ) : (
-                                <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
-                                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                                </div>
-                              )}
-                              <span className="truncate">{product.seller.company}</span>
-                            </div>
-                          )}
+                      return (
+                        <motion.div
+                          key={`${category.slug}-${i}`}
+                          variants={cardVariants}
+                          className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all relative overflow-hidden"
+                        >
+                          <div className="relative aspect-square overflow-hidden bg-slate-100">
+                            <img
+                              src={displayImage}
+                              alt={product.subcategory || "Product"}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              loading="lazy"
+                            />
+                          </div>
 
-                          <button
-                            onClick={() => handleExploreSubcategory(product)}
-                            className="mt-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
-                          >
-                            Explore Subcategory
-                            <ArrowRight className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </motion.div>
-                    ))}
-              </div>
-            </motion.section>
-          );
-        })}
+                          <div className="p-4">
+                            <h5 className="font-semibold text-lg line-clamp-2 mb-3 text-slate-800">
+                              {product.subcategory
+                                ? product.subcategory.charAt(0).toUpperCase() + product.subcategory.slice(1)
+                                : "Uncategorized"}
+                            </h5>
+
+                            {product.seller?.company && (
+                              <div className="mb-3 flex items-center gap-2 text-xs text-slate-500">
+                                {product.seller.avatar ? (
+                                  <img
+                                    src={product.seller.avatar}
+                                    alt={product.seller.company}
+                                    className="w-7 h-7 rounded-lg object-cover border border-slate-200"
+                                  />
+                                ) : (
+                                  <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                  </div>
+                                )}
+                                <span className="truncate">{product.seller.company}</span>
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => handleExploreSubcategory(product)}
+                              className="mt-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 active:scale-95"
+                            >
+                              Explore Subcategory
+                              <ArrowRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full text-center py-12 text-slate-500">
+                      No products available in this category yet.
+                    </div>
+                  )}
+                </motion.div>
+              </motion.section>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );

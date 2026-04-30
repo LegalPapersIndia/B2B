@@ -58,13 +58,17 @@ export default function CategoryPage() {
         return;
       }
 
-      setCategory({
+setCategory({
         slug: found.name,
         name: found.name.charAt(0).toUpperCase() + found.name.slice(1),
         desc: found.description || "High quality products available in bulk",
         image: found.image 
           ? (found.image.startsWith('http') ? found.image : `${API_BASE_URL.replace('/api', '')}${found.image}`) 
           : (categoryImageFallbacks[found.name] || "https://picsum.photos/id/20/600/400"),
+        subcategories: (found.subcategories || []).map((sub) => ({
+          name: sub.name,
+          referenceImage: sub.referenceImage || '',
+        })),
       });
 
       const prodRes = await axios.get(`${API_BASE_URL}/products?category=${slug}`);
