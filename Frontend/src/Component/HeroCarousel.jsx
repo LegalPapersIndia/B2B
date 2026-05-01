@@ -164,7 +164,7 @@ const HeroCarousel = () => {
               className="flex flex-col sm:flex-row gap-5 sm:gap-6"
             >
               <Link
-                to="/signup?role=buyer"
+                to="/login"
                 className="px-10 py-5 bg-orange-600 hover:bg-orange-700 
                            text-white rounded-2xl font-bold text-lg transition-all duration-300 
                            hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] hover:scale-[1.03] 
@@ -174,7 +174,7 @@ const HeroCarousel = () => {
               </Link>
 
               <Link
-                to="/signup?role=seller"
+                to="/login"
                 className="px-10 py-5 bg-white/10 hover:bg-white/20 text-white 
                            border border-white/30 backdrop-blur-md rounded-2xl 
                            font-bold text-lg transition-all duration-300 
