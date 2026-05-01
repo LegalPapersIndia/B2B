@@ -30,13 +30,9 @@ export default function Home() {
                   <Sidebar />
                 </div>
               </aside>
-
-              {/* Main Content Area */}
               <div className="flex-1 min-w-0">
                 <HeroCarousel />
               </div>
-
-              {/* Right Action Sidebar */}
               <aside className="hidden xl:block xl:w-80 shrink-0">
                 <div className="sticky top-6">
                   <ActionSidebar 
@@ -44,7 +40,6 @@ export default function Home() {
                   />
                 </div>
               </aside>
-
             </div>
           </div>
 

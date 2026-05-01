@@ -325,21 +325,75 @@ router.get('/users', async (req, res) => {
     const { category } = req.query;
     let query = {};
 
-    // If category is provided, filter sellers who have products in that category
+// If category is provided, filter sellers who have products in that category
     if (category) {
       const normalizedCategory = String(category).trim().toLowerCase();
+      console.log('=== CATEGORY FILTER DEBUG ===');
+      console.log('Raw category from query:', category);
+      console.log('Normalized:', normalizedCategory);
       
-      // Find sellers who have products in this category OR have category field set
-      const sellersWithProducts = await Product.find({ category: normalizedCategory }).distinct('clerkId');
-      const sellersWithCategory = await Seller.find({ category: normalizedCategory }).distinct('clerkId');
+      // Get base term (remove & and everything after)
+      let baseTerm = normalizedCategory.replace(/&.*$/, '').trim();
+      console.log('Base term:', baseTerm);
+      
+      // Get seller category field values to see what's stored
+      const sellerCategories = await Seller.find({ category: { $exists: true, $ne: '' } }).select('category').limit(5).lean();
+      console.log('Sample seller categories in DB:', sellerCategories.map(s => s.category).filter(Boolean));
+      
+      // Search for multiple variations - with and without trailing 's', and partial matches
+      // This allows matching "textiles" with "textile" search, and vice versa
+      const searchPatterns = [
+        new RegExp(`^${baseTerm}$`, 'i'),           // exact match
+        new RegExp(`^${baseTerm}`, 'i'),           // starts with
+        new RegExp(baseTerm, 'i'),                // contains anywhere
+      ];
+      
+      if (baseTerm.endsWith('s')) {
+        // Also try without trailing 's'
+        const withoutS = baseTerm.slice(0, -1);
+        searchPatterns.push(new RegExp(`^${withoutS}$`, 'i'));
+        searchPatterns.push(new RegExp(`^${withoutS}`, 'i'));
+      } else {
+        // Also try with trailing 's'
+        const withS = baseTerm + 's';
+        searchPatterns.push(new RegExp(`^${withS}$`, 'i'));
+        searchPatterns.push(new RegExp(`^${withS}`, 'i'));
+      }
+      
+// Query products with all patterns
+      let sellersWithProducts = [];
+      for (const pattern of searchPatterns) {
+        const matches = await Product.find({ category: pattern }).distinct('clerkId');
+        sellersWithProducts.push(...matches);
+      }
+      sellersWithProducts = [...new Set(sellersWithProducts)];
+      
+      // Query seller profiles with all patterns - search both 'category' and 'businessType' fields
+      let sellersWithCategory = [];
+      for (const pattern of searchPatterns) {
+        const matches = await Seller.find({ 
+          $or: [
+            { category: pattern },
+            { businessType: pattern }
+          ]
+        }).distinct('clerkId');
+        sellersWithCategory.push(...matches);
+      }
+      sellersWithCategory = [...new Set(sellersWithCategory)];
+      
+      console.log('Sellers with products in category:', sellersWithProducts.length);
+      console.log('Sellers with category field:', sellersWithCategory.length);
       
       const clerkIds = [...new Set([...sellersWithProducts, ...sellersWithCategory])];
       
-      if (clerkIds.length > 0) {
+      console.log('Total unique sellers found:', clerkIds.length);
+      
+if (clerkIds.length > 0) {
         query = { clerkId: { $in: clerkIds } };
       } else {
-        // No sellers found for this category
-        return res.json({ success: true, users: [] });
+        // No sellers found for this specific category - return all sellers as fallback
+        console.log('No sellers found for category:', searchTerm, '- returning all sellers');
+        // Don't filter - let it return all sellers below
       }
     }
 
