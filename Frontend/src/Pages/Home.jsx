@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 
 import HeroCarousel from '../Component/HeroCarousel';
-import Sidebar from '../Component/Sidebar';
+import Sidebar from '../Component/SideBar';
 import ActionSidebar from '../Component/ActionSide';
 import CategoryShowcase from '../Component/CategoryShowcase';
 import ManufacturingHubsCarousel from '../Component/ManufacturingHubsCarousel';
