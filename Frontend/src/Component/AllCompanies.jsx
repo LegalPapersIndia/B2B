@@ -28,7 +28,7 @@ export default function AllCompanies() {
       const res = await axios.get(`${API_BASE_URL}/companies`);
       let allCompanies = res.data.companies || res.data || [];
 
-      // Premium sellers ko top pe laane ke liye
+      // Premium companies first
       allCompanies.sort((a, b) => {
         if (a.isPremium && !b.isPremium) return -1;
         if (!a.isPremium && b.isPremium) return 1;
@@ -58,7 +58,7 @@ export default function AllCompanies() {
 
           <Link 
             to="/companies"
-            className="mt-4 md:mt-0 flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium group"
+            className="mt-4 md:mt-0 flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium group"
           >
             View All Associates
             <ArrowRight className="group-hover:translate-x-1 transition" />
@@ -81,7 +81,8 @@ export default function AllCompanies() {
                   transition={{ delay: i * 0.05 }}
                   className="bg-white border border-gray-100 rounded-3xl overflow-hidden hover:shadow-xl transition-all group"
                 >
-                  <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                  {/* Top Accent Bar - Orange Theme */}
+                  <div className="h-2 bg-gradient-to-r from-orange-500 to-amber-500" />
 
                   <div className="p-6">
                     {/* Logo + Premium Badge */}
@@ -102,25 +103,25 @@ export default function AllCompanies() {
                       )}
 
                       {company.isPremium && (
-                        <div className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-3 py-1 text-xs font-semibold">
+                        <div className="inline-flex items-center rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold">
                           ⭐ Premium
                         </div>
                       )}
                     </div>
 
                     {/* Company Name */}
-                    <h3 className="font-semibold text-xl line-clamp-2 mt-2">
+                    <h3 className="font-semibold text-xl line-clamp-2 mt-2 text-gray-900">
                       {company.company || company.companyName || company.name}
                     </h3>
 
-                    {/* Owner Name (optional) */}
+                    {/* Owner Name */}
                     {company.name && company.name !== (company.company || company.companyName) && (
-                      <p className="text-sm text-emerald-700 mt-1">by {company.name}</p>
+                      <p className="text-sm text-blue-700 mt-1">by {company.name}</p>
                     )}
 
                     {/* Industry */}
                     {industry && (
-                      <div className="mt-3 inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-2xl text-sm font-medium">
+                      <div className="mt-3 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-2xl text-sm font-medium">
                         <Briefcase className="w-4 h-4" />
                         {toTitle(industry)}
                       </div>
@@ -150,10 +151,13 @@ export default function AllCompanies() {
                       )}
                     </div>
 
-                    {/* Explore Button */}
+                    {/* Explore Button - Orange Theme */}
                     <Link
                       to={`/company/${company._id}`}
-                      className="mt-7 w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-2xl font-medium transition-all active:scale-[0.98]"
+                      className="mt-7 w-full flex items-center justify-center gap-2 
+                                 bg-orange-600 hover:bg-orange-700 
+                                 text-white py-3.5 rounded-2xl font-medium 
+                                 transition-all active:scale-[0.98]"
                     >
                       Explore Products
                       <ArrowRight className="w-4 h-4" />
@@ -165,11 +169,13 @@ export default function AllCompanies() {
           </div>
         )}
 
-        {/* View All Button */}
+        {/* View All Button - Blue Theme */}
         <div className="text-center mt-14">
           <Link
             to="/companies"
-            className="inline-flex items-center gap-3 bg-gray-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-semibold text-lg transition"
+            className="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-700 
+                       text-white px-10 py-4 rounded-2xl font-semibold text-lg 
+                       transition-all active:scale-[0.98]"
           >
             Explore All Associates
             <ArrowRight />

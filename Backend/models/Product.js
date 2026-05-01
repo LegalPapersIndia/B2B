@@ -129,7 +129,7 @@ productSchema.pre('save', async function () {
       return;
     }
 
-    const isDefaultCategory = allowedCategories.includes(this.category);
+const isDefaultCategory = allowedCategories.includes(this.category);
     const Category = mongoose.model('Category');
     const categoryDoc = await Category.findOne({ name: this.category }).lean();
 
@@ -157,6 +157,16 @@ productSchema.pre('save', async function () {
     if (this.subcategory !== 'other') this.requestedSubcategoryName = '';
     this.requestedCategoryImage = '';
     this.requestedSubcategoryImage = '';
+
+    // If category is in allowedCategories but doesn't have DB subcategories, allow any subcategory
+    // This makes the filter work properly - categories from DEFAULT_CATEGORIES work even without DB config
+    if (isDefaultCategory && configuredSubcategories.length === 0) {
+      if (!this.subcategory) {
+        throw new Error(`Subcategory is required for category "${this.category}".`);
+      }
+      // Allow any subcategory for default allowed categories without DB config
+      return;
+    }
 
     if (configuredSubcategories.length > 0) {
       if (!this.subcategory) {
@@ -241,7 +251,7 @@ productSchema.pre('findOneAndUpdate', async function () {
       return;
     }
 
-    const isDefaultCategory = allowedCategories.includes(category);
+const isDefaultCategory = allowedCategories.includes(category);
     const Category = mongoose.model('Category');
     const categoryDoc = await Category.findOne({ name: category }).lean();
 
@@ -258,7 +268,15 @@ productSchema.pre('findOneAndUpdate', async function () {
       if (!requestedSubcategoryName) {
         throw new Error('Custom subcategory name is required when subcategory is "other".');
       }
-    } else if (configuredSubcategories.length > 0) {
+    } 
+    // If category is in allowedCategories but doesn't have DB subcategories, allow any subcategory
+    else if (isDefaultCategory && configuredSubcategories.length === 0) {
+      if (!subcategory) {
+        throw new Error(`Subcategory is required for category "${category}".`);
+      }
+      // Allow any subcategory for default allowed categories without DB config
+    }
+    else if (configuredSubcategories.length > 0) {
       if (!subcategory) {
         throw new Error(`Subcategory is required for category "${category}".`);
       }

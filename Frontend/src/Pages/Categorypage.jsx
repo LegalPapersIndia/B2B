@@ -1,3 +1,4 @@
+// src/Pages/CategoryPage.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -50,7 +51,7 @@ export default function CategoryPage() {
       if (!catRes.data.success) throw new Error("Categories fetch failed");
 
       const allCats = catRes.data.categories || [];
-      const found = allCats.find((c) => c.name === slug);
+      const found = allCats.find((c) => c.name?.toLowerCase() === slug?.toLowerCase());
 
       if (!found) {
         setCategory(null);
@@ -58,13 +59,13 @@ export default function CategoryPage() {
         return;
       }
 
-setCategory({
+      setCategory({
         slug: found.name,
         name: found.name.charAt(0).toUpperCase() + found.name.slice(1),
         desc: found.description || "High quality products available in bulk",
         image: found.image 
           ? (found.image.startsWith('http') ? found.image : `${API_BASE_URL.replace('/api', '')}${found.image}`) 
-          : (categoryImageFallbacks[found.name] || "https://picsum.photos/id/20/600/400"),
+          : (categoryImageFallbacks[found.name?.toLowerCase()] || "https://picsum.photos/id/20/600/400"),
         subcategories: (found.subcategories || []).map((sub) => ({
           name: sub.name,
           referenceImage: sub.referenceImage || '',
@@ -72,18 +73,13 @@ setCategory({
       });
 
       const prodRes = await axios.get(`${API_BASE_URL}/products?category=${slug}`);
-      let fetchedProducts = Array.isArray(prodRes.data) ? prodRes.data : [];
+      let fetchedProducts = Array.isArray(prodRes.data) ? prodRes.data : prodRes.data?.products || [];
 
-      // 🔥 Important: Premium logic ko safe aur reliable banaya
-      fetchedProducts = fetchedProducts.map((product) => {
-        const seller = product.seller || {};
-        
-        return {
-          ...product,
-          // Agar seller.isPremium true hai toh premium maano
-          isPremiumSeller: seller.isPremium === true
-        };
-      });
+      // Premium seller logic
+      fetchedProducts = fetchedProducts.map((product) => ({
+        ...product,
+        isPremiumSeller: product.seller?.isPremium === true
+      }));
 
       setProducts(fetchedProducts);
     } catch (err) {
@@ -115,17 +111,22 @@ setCategory({
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading category...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-gray-600">Loading category...</div>
+      </div>
+    );
   }
 
   if (!category) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-3xl font-bold mb-2">Category Not Found</h2>
+          <h2 className="text-3xl font-bold mb-2 text-gray-900">Category Not Found</h2>
+          <p className="text-gray-600 mb-6">The category you're looking for doesn't exist.</p>
           <button 
             onClick={() => navigate('/')} 
-            className="mt-4 bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700"
+            className="bg-orange-600 text-white px-8 py-3 rounded-2xl hover:bg-orange-700 transition"
           >
             Go Back Home
           </button>
@@ -137,80 +138,106 @@ setCategory({
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        
         <button 
           onClick={() => navigate(-1)} 
-          className="flex items-center gap-2 mb-6 text-slate-600 hover:text-emerald-600"
+          className="flex items-center gap-2 mb-6 text-slate-600 hover:text-orange-600 transition-colors"
         >
-          <ArrowLeft /> Back
+          <ArrowLeft size={20} /> Back to Categories
         </button>
 
-        <div className="relative h-[320px] rounded-3xl overflow-hidden mb-10">
-          <img src={category.image} alt={category.name} className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        {/* Hero Banner */}
+        <div className="relative h-[340px] rounded-3xl overflow-hidden mb-12 shadow-xl">
+          <img 
+            src={category.image} 
+            alt={category.name} 
+            className="absolute inset-0 w-full h-full object-cover" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
+          
           <div className="absolute bottom-10 left-10 text-white">
-            <h1 className="text-5xl font-bold mb-3">{category.name}</h1>
-            <p className="text-xl max-w-xl">{category.desc}</p>
+            <h1 className="text-5xl font-bold mb-3 tracking-tight">{category.name}</h1>
+            <p className="text-xl max-w-xl text-white/90">{category.desc}</p>
           </div>
         </div>
 
+        {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((p) => (
-            <motion.div 
-              key={p._id} 
-              className="bg-white rounded-2xl overflow-hidden border hover:shadow-xl transition relative"
-            >
-              {/* Premium Badge - Yeh ab seller ke current status ke hisaab se dikhega */}
-              {p.isPremiumSeller && (
-                <div className="absolute top-3 right-3 z-10">
-                  <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full shadow-md">
-                    <Star className="w-4 h-4 fill-current" />
-                    PREMIUM SELLER
-                  </div>
-                </div>
-              )}
-
-              <img 
-                src={p.images?.[0] || "https://picsum.photos/id/20/600/400"} 
-                alt={p.name} 
-                className="w-full h-52 object-cover" 
-              />
-
-              <div className="p-5">
-                <h3 className="font-semibold text-lg line-clamp-2">{p.name}</h3>
-                <p className="text-emerald-600 font-bold text-xl mt-1">
-                  Rs {p.price?.toLocaleString("en-IN")}
-                </p>
-                <p className="text-sm text-gray-500">MOQ: {p.moq}</p>
-                <p className="text-xs text-slate-500 mt-1">Subcategory: {p.subcategory || "N/A"}</p>
-
-                {p.seller?.company && (
-                  <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-                    {p.seller?.avatar ? (
-                      <img
-                        src={p.seller.avatar}
-                        alt={p.seller.company}
-                        className="w-8 h-8 rounded-lg object-cover border border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
-                        <Building2 className="w-4 h-4 text-gray-400" />
-                      </div>
-                    )}
-                    <span>
-                      by <span className="font-medium">{p.seller.company}</span>
-                    </span>
+          {products.length > 0 ? (
+            products.map((p) => (
+              <motion.div 
+                key={p._id} 
+                whileHover={{ y: -4 }}
+                className="bg-white rounded-3xl overflow-hidden border border-gray-100 hover:border-orange-300 hover:shadow-xl transition-all duration-300 relative group"
+              >
+                {/* Premium Badge */}
+                {p.isPremiumSeller && (
+                  <div className="absolute top-4 right-4 z-10">
+                    <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-md">
+                      <Star className="w-4 h-4 fill-current" />
+                      PREMIUM SELLER
+                    </div>
                   </div>
                 )}
 
-                <button
-                  onClick={() => handleExploreSubcategory(p)}
-                  className="mt-5 w-full bg-emerald-600 text-white py-3 rounded-xl hover:bg-emerald-700 transition"
-                >
-                  Explore Subcategory
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                <div className="relative h-56 overflow-hidden">
+                  <img 
+                    src={p.images?.[0] || "https://picsum.photos/id/20/600/400"} 
+                    alt={p.name} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  />
+                </div>
+
+                <div className="p-6">
+                  <h3 className="font-semibold text-lg line-clamp-2 text-gray-900 mb-2">
+                    {p.name}
+                  </h3>
+
+                  <p className="text-2xl font-bold text-orange-600">
+                    ₹{p.price?.toLocaleString("en-IN")}
+                  </p>
+
+                  <p className="text-sm text-gray-500 mt-1">
+                    MOQ: <span className="font-medium">{p.moq || "N/A"}</span>
+                  </p>
+
+                  {p.subcategory && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Subcategory: <span className="font-medium">{p.subcategory}</span>
+                    </p>
+                  )}
+
+                  {p.seller?.company && (
+                    <div className="mt-4 flex items-center gap-3 text-sm text-gray-600">
+                      {p.seller?.avatar ? (
+                        <img
+                          src={p.seller.avatar}
+                          alt={p.seller.company}
+                          className="w-8 h-8 rounded-lg object-cover border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+                          <Building2 className="w-4 h-4 text-gray-400" />
+                        </div>
+                      )}
+                      <span className="truncate">by <span className="font-medium text-gray-800">{p.seller.company}</span></span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handleExploreSubcategory(p)}
+                    className="mt-6 w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-2xl font-medium transition-all active:scale-95"
+                  >
+                    Explore Subcategory
+                  </button>
+                </div>
+              </motion.div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-20">
+              <p className="text-gray-500 text-lg">No products found in this category yet.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

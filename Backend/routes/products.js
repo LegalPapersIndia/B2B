@@ -7,6 +7,7 @@ const multer = require('multer');
 const { requireSellerAuth } = require('../middleware/requireSellerAuth');
 const { uploadBufferToCloudinary } = require('../utils/cloudinary');
 const {getAuthIdentityCandidates,buildSellerLookupFromAuth} = require('../utils/sellerIdentity');
+const { allowedCategories } = require('../utils/categoriesConfig');
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 const requireAuth = requireSellerAuth;
@@ -39,8 +40,16 @@ router.post('/', requireAuth, requireCompletedProfile, upload.any(), async (req,
     const normalizedCategory = String(category || '').trim().toLowerCase();
     const normalizedSubcategory = String(subcategory || '').trim().toLowerCase();
 
-    if (!name || !category || !price || !normalizedSubcategory) {
+if (!name || !category || !price || !normalizedSubcategory) {
       return res.status(400).json({ error: 'Name, Category, Subcategory and Price are required' });
+    }
+
+    // Only allow categories from the allowed list (same as Super Admin)
+    if (!allowedCategories.includes(normalizedCategory)) {
+      return res.status(400).json({ 
+        error: 'Invalid category', 
+        message: `Category must be one of: ${allowedCategories.join(', ')}` 
+      });
     }
 
     const user = req.currentUserProfile;
@@ -202,10 +211,19 @@ router.put('/:id', requireAuth, requireCompletedProfile, upload.any(), async (re
     if (price !== undefined) updatePayload.price = Number(price);
     if (moq !== undefined) updatePayload.moq = Number(moq);
     if (description !== undefined) updatePayload.description = String(description || '').trim();
-    const hasCategory = category !== undefined;
+const hasCategory = category !== undefined;
     const hasSubcategory = subcategory !== undefined;
     if (hasCategory || hasSubcategory) {
       const normalizedCategory = String(category || '').trim().toLowerCase();
+      
+      // Only allow categories from the allowed list (same as Super Admin)
+      if (normalizedCategory && !allowedCategories.includes(normalizedCategory)) {
+        return res.status(400).json({ 
+          error: 'Invalid category', 
+          message: `Category must be one of: ${allowedCategories.join(', ')}` 
+        });
+      }
+      
       const normalizedSubcategory = String(subcategory || '').trim().toLowerCase();
       const normalizedOtherCategory = String(otherCategory || '').trim().toLowerCase();
       const normalizedOtherSubcategory = String(otherSubcategory || '').trim().toLowerCase();

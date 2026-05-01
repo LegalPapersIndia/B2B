@@ -1,10 +1,19 @@
 // src/Pages/HelpCenter.jsx
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import {
-  FaSearch, FaQuestionCircle, FaHeadset, FaWhatsapp,
-  FaEnvelope, FaPhoneAlt, FaPaperPlane, FaSpinner,
-  FaShieldAlt, FaShippingFast, FaHandshake, FaFileInvoiceDollar,
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FaSearch, 
+  FaQuestionCircle, 
+  FaHeadset, 
+  FaWhatsapp,
+  FaEnvelope, 
+  FaPhoneAlt, 
+  FaPaperPlane, 
+  FaSpinner,
+  FaShieldAlt, 
+  FaShippingFast, 
+  FaHandshake, 
+  FaFileInvoiceDollar,
 } from 'react-icons/fa';
 
 const HelpCenter = () => {
@@ -32,6 +41,7 @@ const HelpCenter = () => {
       console.log('Help ticket submitted:', formData);
       setSubmitted(true);
       setLoading(false);
+      
       setTimeout(() => {
         setSubmitted(false);
         setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
@@ -44,7 +54,7 @@ const HelpCenter = () => {
 
   const faqCategories = [
     {
-      icon: <FaShieldAlt className="text-4xl text-indigo-600" />,
+      icon: <FaShieldAlt className="text-4xl text-blue-600" />,
       title: "Account & Verification",
       items: [
         "How to verify my business?",
@@ -53,7 +63,7 @@ const HelpCenter = () => {
       ]
     },
     {
-      icon: <FaHandshake className="text-4xl text-emerald-600" />,
+      icon: <FaHandshake className="text-4xl text-orange-600" />,
       title: "Buying & Inquiries",
       items: [
         "How to post a buying requirement?",
@@ -71,7 +81,7 @@ const HelpCenter = () => {
       ]
     },
     {
-      icon: <FaFileInvoiceDollar className="text-4xl text-amber-600" />,
+      icon: <FaFileInvoiceDollar className="text-4xl text-orange-600" />,
       title: "Payments & Refunds",
       items: [
         "How secure are payments?",
@@ -82,16 +92,16 @@ const HelpCenter = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero / Search Section */}
-      <section className="bg-gradient-to-br from-indigo-800 to-indigo-950 text-white py-16 lg:py-24">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-blue-900 to-orange-700 text-white py-16 lg:py-24">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6"
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 tracking-tight"
           >
-            Help Center
+            How Can We Help You?
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
@@ -99,28 +109,29 @@ const HelpCenter = () => {
             transition={{ delay: 0.2 }}
             className="text-xl lg:text-2xl mb-10 max-w-3xl mx-auto opacity-90"
           >
-            Find answers quickly or get in touch with our support team
+            Find answers or get personalized support from our team
           </motion.p>
 
           {/* Search Bar */}
           <div className="relative max-w-3xl mx-auto">
-            <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
+            <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for help (e.g. verification, payment, shipping...)"
-              className="w-full pl-14 pr-6 py-5 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-indigo-400 backdrop-blur-md text-lg"
+              placeholder="Search help topics... (verification, payments, shipping)"
+              className="w-full pl-16 pr-6 py-5 rounded-2xl bg-white/10 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-400 backdrop-blur-md text-lg"
             />
           </div>
         </div>
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+        
         {/* Popular Topics */}
         <div className="mb-20">
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 text-center mb-12">
-            Popular Topics
+            Popular Help Topics
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             {faqCategories.map((category, index) => (
@@ -130,16 +141,16 @@ const HelpCenter = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl hover:border-indigo-200 transition-all group"
+                className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100 hover:shadow-xl hover:border-orange-200 transition-all group"
               >
-                <div className="mb-6 transform group-hover:scale-110 transition-transform">
+                <div className="mb-6 transform group-hover:scale-110 transition-transform duration-300">
                   {category.icon}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">{category.title}</h3>
                 <ul className="space-y-3 text-gray-700">
                   {category.items.map((item, i) => (
-                    <li key={i} className="hover:text-indigo-600 cursor-pointer transition-colors">
-                      {item}
+                    <li key={i} className="hover:text-orange-600 cursor-pointer transition-colors flex items-start gap-2">
+                      • {item}
                     </li>
                   ))}
                 </ul>
@@ -148,24 +159,25 @@ const HelpCenter = () => {
           </div>
         </div>
 
-        {/* Contact Support Form */}
+        {/* Contact Support Section */}
         <div className="grid lg:grid-cols-3 gap-12">
-          {/* Form */}
+          
+          {/* Main Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl p-8 lg:p-12 shadow-lg border border-gray-100">
+            <div className="bg-white rounded-3xl p-8 lg:p-12 shadow-xl border border-gray-100">
               <h2 className="text-3xl font-bold text-gray-900 mb-8">Contact Support</h2>
 
               {submitted ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="bg-emerald-50 border border-emerald-200 rounded-xl p-10 text-center"
+                  className="bg-emerald-50 border border-emerald-200 rounded-2xl p-12 text-center"
                 >
                   <div className="text-6xl mb-6">🎉</div>
-                  <h3 className="text-2xl font-bold text-emerald-700 mb-4">Thank You!</h3>
-                  <p className="text-lg text-gray-700">
-                    Your support request has been submitted.<br />
-                    Our team will respond within 24 hours.
+                  <h3 className="text-2xl font-bold text-emerald-700 mb-3">Request Received!</h3>
+                  <p className="text-gray-600 text-lg">
+                    Thank you for reaching out.<br />
+                    Our support team will respond within 24 business hours.
                   </p>
                 </motion.div>
               ) : (
@@ -178,31 +190,31 @@ const HelpCenter = () => {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="w-full px-5 py-4 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+                      className="w-full px-5 py-4 rounded-2xl border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
                     <input
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="w-full px-5 py-4 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+                      className="w-full px-5 py-4 rounded-2xl border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
                     <input
                       type="tel"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
                       required
-                      className="w-full px-5 py-4 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
+                      className="w-full px-5 py-4 rounded-2xl border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none transition-all"
                     />
                   </div>
 
@@ -213,42 +225,44 @@ const HelpCenter = () => {
                       value={formData.subject}
                       onChange={handleChange}
                       required
-                      className="w-full px-5 py-4 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition bg-white"
+                      className="w-full px-5 py-4 rounded-2xl border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none transition-all bg-white"
                     >
                       <option value="">Select issue type</option>
                       <option value="account">Account / Verification</option>
                       <option value="buying">Buying / Inquiry</option>
                       <option value="selling">Selling / Listing</option>
                       <option value="payment">Payment / Refund</option>
-                      <option value="technical">Technical / Website Issue</option>
+                      <option value="technical">Technical Issue</option>
                       <option value="other">Other</option>
                     </select>
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Describe your issue *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Describe your issue in detail *</label>
                     <textarea
                       name="message"
                       value={formData.message}
                       onChange={handleChange}
                       required
                       rows={6}
-                      className="w-full px-5 py-4 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition resize-none"
+                      className="w-full px-5 py-4 rounded-2xl border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none resize-y"
+                      placeholder="Please provide as much detail as possible..."
                     />
                   </div>
 
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-2 mt-4">
                     <button
                       type="submit"
                       disabled={loading}
-                      className={`w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white py-5 px-8 rounded-xl font-bold text-lg transition-all ${
-                        loading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-2xl hover:scale-[1.02] active:scale-98'
-                      }`}
+                      className={`w-full flex items-center justify-center gap-3 py-5 rounded-2xl font-bold text-lg text-white transition-all shadow-lg
+                        ${loading 
+                          ? 'bg-gray-400 cursor-not-allowed' 
+                          : 'bg-orange-600 hover:bg-orange-700 active:scale-[0.98]'}`}
                     >
                       {loading ? (
                         <>Submitting... <FaSpinner className="animate-spin" size={20} /></>
                       ) : (
-                        <>Submit Request <FaPaperPlane size={20} /></>
+                        <>Send Message <FaPaperPlane size={20} /></>
                       )}
                     </button>
                   </div>
@@ -257,52 +271,53 @@ const HelpCenter = () => {
             </div>
           </div>
 
-          {/* Right Sidebar - Quick Help */}
+          {/* Sidebar - Quick Support */}
           <div className="space-y-8 lg:sticky lg:top-8 lg:self-start">
-            {/* WhatsApp Quick Support */}
+            
+            {/* WhatsApp Support */}
             <a
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-4 bg-green-600 hover:bg-green-700 text-white py-6 px-8 rounded-2xl font-bold text-xl shadow-lg hover:shadow-2xl transition-all hover:scale-[1.03]"
+              className="flex items-center justify-center gap-4 bg-green-600 hover:bg-green-700 text-white py-6 px-8 rounded-3xl font-bold text-xl shadow-lg hover:shadow-2xl transition-all"
             >
               <FaWhatsapp size={36} />
-              <div className="text-left">
-                <div className="text-sm opacity-90">Instant Support</div>
+              <div>
+                <div className="text-sm opacity-90">Instant Help</div>
                 <div>Chat on WhatsApp</div>
               </div>
             </a>
 
-            {/* Contact Cards */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+            {/* Contact Details */}
+            <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Contact Details</h3>
               <div className="space-y-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-4 bg-emerald-100 rounded-xl text-emerald-600">
+                  <div className="p-4 bg-orange-100 rounded-2xl text-orange-600">
                     <FaPhoneAlt size={24} />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Call Us</p>
-                    <a href="tel:+917505266931" className="font-semibold text-gray-900 hover:text-emerald-600">
+                    <a href="tel:+917505266931" className="font-semibold text-gray-900 hover:text-orange-600">
                       +91 75052 66931
                     </a>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <div className="p-4 bg-indigo-100 rounded-xl text-indigo-600">
+                  <div className="p-4 bg-blue-100 rounded-2xl text-blue-600">
                     <FaEnvelope size={24} />
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Email Us</p>
-                    <a href="mailto:support@b2b.in" className="font-semibold text-gray-900 hover:text-indigo-600">
+                    <a href="mailto:support@b2b.in" className="font-semibold text-gray-900 hover:text-blue-600">
                       support@b2b.in
                     </a>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <div className="p-4 bg-amber-100 rounded-xl text-amber-600">
+                  <div className="p-4 bg-amber-100 rounded-2xl text-amber-600">
                     <FaHeadset size={24} />
                   </div>
                   <div>
@@ -314,13 +329,13 @@ const HelpCenter = () => {
             </div>
 
             {/* Quick Links */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+            <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
               <h3 className="text-xl font-bold text-gray-900 mb-6">Quick Links</h3>
               <ul className="space-y-4 text-gray-700">
-                <li><a href="/about" className="hover:text-indigo-600 transition-colors">About Us</a></li>
-                <li><a href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy Policy</a></li>
-                <li><a href="/refund" className="hover:text-indigo-600 transition-colors">Refund Policy</a></li>
-                <li><a href="/terms" className="hover:text-indigo-600 transition-colors">Terms of Service</a></li>
+                <li><a href="/about" className="hover:text-orange-600 transition-colors">About Us</a></li>
+                <li><a href="/privacy" className="hover:text-orange-600 transition-colors">Privacy Policy</a></li>
+                <li><a href="/refund" className="hover:text-orange-600 transition-colors">Refund Policy</a></li>
+                <li><a href="/terms" className="hover:text-orange-600 transition-colors">Terms of Service</a></li>
               </ul>
             </div>
           </div>

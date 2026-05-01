@@ -8,9 +8,12 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
 function OtherEnquiries() {
   const [enquiries, setEnquiries] = useState([]);
   const [sellers, setSellers] = useState([]);
+  const [allSellers, setAllSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [forwardingId, setForwardingId] = useState('');
   const [selectedSellers, setSelectedSellers] = useState({});
+  const [filterMode, setFilterMode] = useState('all'); // 'same-category' or 'all'
+  const [activeEnquiryCategory, setActiveEnquiryCategory] = useState('');
 
   const token = localStorage.getItem('adminToken');
 
@@ -19,17 +22,44 @@ function OtherEnquiries() {
     'Content-Type': 'application/json',
   }), [token]);
 
+  // Fetch all sellers once
+  const fetchAllSellers = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/users`, { headers });
+      const data = await res.json();
+      return data.users || [];
+    } catch (err) {
+      console.error('Failed to fetch all sellers:', err);
+      return [];
+    }
+  };
+
+  // Fetch sellers filtered by category
+  const fetchSellersByCategory = async (category) => {
+    if (!category) {
+      return fetchAllSellers();
+    }
+    try {
+      const res = await fetch(`${API_BASE}/users?category=${encodeURIComponent(category)}`, { headers });
+      const data = await res.json();
+      return data.users || [];
+    } catch (err) {
+      console.error('Failed to fetch sellers by category:', err);
+      return [];
+    }
+  };
+
   const fetchData = async () => {
     try {
-      const [enquiryRes, sellerRes] = await Promise.all([
+      const [enquiryRes, allSellersData] = await Promise.all([
         fetch(`${API_BASE}/other-enquiries`, { headers }),
-        fetch(`${API_BASE}/users`, { headers }),
+        fetchAllSellers(),
       ]);
       const enquiryData = await enquiryRes.json();
-      const sellerData = await sellerRes.json();
 
       setEnquiries(enquiryData.enquiries || []);
-      setSellers(sellerData.users || []);
+      setAllSellers(allSellersData);
+      setSellers(allSellersData);
     } finally {
       setLoading(false);
     }
@@ -38,6 +68,17 @@ function OtherEnquiries() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Update sellers when filter mode or category changes
+  const updateSellersForFilter = async (mode, category) => {
+    if (mode === 'all') {
+      const all = await fetchAllSellers();
+      setSellers(all);
+    } else if (mode === 'same-category' && category) {
+      const filtered = await fetchSellersByCategory(category);
+      setSellers(filtered);
+    }
+  };
 
   const forwardEnquiry = async (enquiryId) => {
     const sellerIds = selectedSellers[enquiryId] || [];
@@ -64,6 +105,21 @@ function OtherEnquiries() {
       alert(err.message || 'Failed to forward enquiry');
     } finally {
       setForwardingId('');
+    }
+  };
+
+// Handle filter mode change
+  const handleFilterModeChange = async (mode, category = '') => {
+    setFilterMode(mode);
+    setActiveEnquiryCategory(category);
+    await updateSellersForFilter(mode, category);
+  };
+
+  // Select all sellers in current list
+  const selectAllInCategory = () => {
+    const allSellerIds = sellers.map(s => s._id || s.id).filter(Boolean);
+    if (activeEnquiryCategory) {
+      setSelectedSellers(prev => ({ ...prev, [activeEnquiryCategory]: allSellerIds }));
     }
   };
 
@@ -124,7 +180,55 @@ function OtherEnquiries() {
               </div>
 
               <div className="w-full xl:w-80 bg-gray-50 rounded-2xl p-4 border">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Forward to sellers (hold Ctrl/Cmd to select multiple)</label>
+                {/* Filter Toggle */}
+                <div className="mb-3">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Filter Sellers</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleFilterModeChange('same-category', enq.category)}
+                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                        filterMode === 'same-category' && activeEnquiryCategory === enq.category
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white text-gray-700 border hover:bg-gray-50'
+                      }`}
+                    >
+                      Same Category
+                    </button>
+                    <button
+                      onClick={() => handleFilterModeChange('all', '')}
+                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                        filterMode === 'all'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white text-gray-700 border hover:bg-gray-50'
+                      }`}
+                    >
+                      All Sellers
+                    </button>
+                  </div>
+                </div>
+
+                {/* Show info about filtered sellers */}
+                {filterMode === 'same-category' && enq.category && (
+                  <div className="mb-3 text-xs text-gray-600 bg-blue-50 p-2 rounded-lg">
+                    Showing sellers with products in "{enq.category}" ({sellers.length} sellers)
+                  </div>
+                )}
+
+                {/* Select All button for same category filter */}
+                {filterMode === 'same-category' && sellers.length > 0 && (
+                  <button
+                    onClick={selectAllInCategory}
+                    className="mb-3 w-full text-xs bg-indigo-100 text-indigo-700 py-2 rounded-lg font-medium hover:bg-indigo-200"
+                  >
+                    Select All in Category ({sellers.length})
+                  </button>
+                )}
+
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Forward to sellers 
+                  {filterMode === 'same-category' && enq.category ? ` (${enq.category})` : ''}
+                  <span className="text-gray-400 font-normal"> (hold Ctrl/Cmd to select multiple)</span>
+                </label>
                 <select
                   multiple
                   size="8"
@@ -136,11 +240,15 @@ function OtherEnquiries() {
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white focus:outline-none focus:border-blue-500"
                 >
                   <option value="">Select seller</option>
-                  {sellers.map((seller) => (
-                    <option key={seller._id || seller.id} value={seller._id || seller.id}>
-                      {seller.company || seller.name || seller.email}
-                    </option>
-                  ))}
+                  {sellers.length === 0 ? (
+                    <option value="" disabled>No sellers found in this category</option>
+                  ) : (
+                    sellers.map((seller) => (
+                      <option key={seller._id || seller.id} value={seller._id || seller.id}>
+                        {seller.company || seller.name || seller.email}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <button
                   onClick={() => forwardEnquiry(enq._id)}

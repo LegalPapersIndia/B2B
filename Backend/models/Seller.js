@@ -62,9 +62,15 @@ const sellerSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  profileCompletedAt: {
+profileCompletedAt: {
     type: Date,
     default: null,
+  },
+  category: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    default: '',
   },
 }, { timestamps: true });
 

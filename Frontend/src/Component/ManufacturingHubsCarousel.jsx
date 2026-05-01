@@ -1,11 +1,11 @@
-// Optimized Manufacturing Hubs Carousel (Clean + Balanced UI)
+// src/Component/ManufacturingHubsCarousel.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, MapPin, Star } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 
-// Reduced & focused data
+// Manufacturing Hubs Data
 const manufacturingHubs = [
   {
     city: "Delhi NCR",
@@ -68,72 +68,70 @@ export default function ManufacturingHubsCarousel() {
             1024: { slidesPerView: 3 },
             1280: { slidesPerView: 4 },
           }}
-          autoplay={{ delay: 3500 }}
-          pagination={{ clickable: true }}
+          autoplay={{ delay: 3500, disableOnInteraction: false }}
+          pagination={{ clickable: true, el: '.swiper-pagination' }}
           loop
+          className="pb-12"
         >
           {manufacturingHubs.map((hub, i) => (
             <SwiperSlide key={i}>
-
               <motion.div
                 whileHover={{ y: -8 }}
-                className="bg-white rounded-3xl shadow-md hover:shadow-xl transition-all overflow-hidden"
+                className="bg-white rounded-3xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-100"
               >
-
-                {/* Image */}
-                <div className="h-48 overflow-hidden">
+                {/* Image Section */}
+                <div className="h-52 overflow-hidden relative">
                   <img
                     src={`${hub.image}?auto=format&fit=crop&w=600&q=80`}
                     alt={hub.city}
-                    className="w-full h-full object-cover hover:scale-110 transition duration-500"
+                    className="w-full h-full object-cover hover:scale-110 transition duration-700"
                   />
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow">
+                    <Star className="w-4 h-4 fill-orange-500 text-orange-500" />
+                    {hub.rating}
+                  </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-5">
-
-                  {/* City + Rating */}
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center gap-2 font-semibold text-gray-800">
-                      <MapPin className="w-4 h-4 text-emerald-600" />
-                      {hub.city}
-                    </div>
-                    <div className="flex items-center text-sm text-amber-500">
-                      <Star className="w-4 h-4 fill-amber-500" />
-                      {hub.rating}
-                    </div>
+                <div className="p-6">
+                  {/* City Name */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="w-5 h-5 text-orange-600" />
+                    <h3 className="font-bold text-xl text-gray-900">{hub.city}</h3>
                   </div>
 
-                  {/* Suppliers */}
-                  <p className="text-sm text-gray-600 mb-3">
-                    {hub.suppliers} Suppliers Available
+                  {/* Suppliers Count */}
+                  <p className="text-gray-600 text-sm mb-4">
+                    <span className="font-semibold text-gray-800">{hub.suppliers}</span> Suppliers Available
                   </p>
 
                   {/* Industries */}
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-2 mb-6">
                     {hub.industries.map((item, j) => (
                       <span
                         key={j}
-                        className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full"
+                        className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium"
                       >
                         {item}
                       </span>
                     ))}
                   </div>
 
-                  {/* CTA */}
-                  <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                    Explore
+                  {/* Explore Button */}
+                  <button className="w-full bg-orange-600 hover:bg-orange-700 active:bg-orange-800 
+                                     text-white py-3.5 rounded-2xl text-sm font-semibold 
+                                     flex items-center justify-center gap-2 transition-all duration-300">
+                    Explore Hub
                     <ArrowRight className="w-4 h-4" />
                   </button>
-
                 </div>
-
               </motion.div>
-
             </SwiperSlide>
           ))}
         </Swiper>
+
+        {/* Custom Pagination Container */}
+        <div className="swiper-pagination mt-6 flex justify-center gap-2"></div>
       </div>
     </section>
   );

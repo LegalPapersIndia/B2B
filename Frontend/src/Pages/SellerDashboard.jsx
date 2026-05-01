@@ -8,33 +8,52 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   : "http://localhost:5000/api";
 
 const DEFAULT_CATEGORIES = [
-  'medicine', 'cosmetics', 'personal-care', 'food', 'beverages',
-  'confectionery', 'daily-use', 'home-kitchen', 'construction',
-  'machinery', 'electrical', 'apparel', 'textiles', 'electronics',
-  'automotive', 'agriculture', 'packaging', 'pet-supplies'
+  "medicine",
+  "cosmetics",
+  "food",
+  "beverages",
+  "confectionery",
+  "construction",
+  "machinery",
+  "electrical",
+  "apparel",
+  "textiles",
+  "electronics",
+  "automotive",
+  "agriculture",
+  "packaging",
 ];
 
 const toTitle = (value = "") =>
   value
-    .split('-')
+    .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+    .join(" ");
 
 const normalizeSubcategories = (subcategories) => {
   if (!Array.isArray(subcategories)) return [];
   return subcategories
     .map((item) => {
-      if (typeof item === 'string') return { name: item, referenceImage: '' };
+      if (typeof item === "string") return { name: item, referenceImage: "" };
       return {
-        name: String(item?.name || '').trim().toLowerCase(),
-        referenceImage: String(item?.referenceImage || '').trim(),
+        name: String(item?.name || "")
+          .trim()
+          .toLowerCase(),
+        referenceImage: String(item?.referenceImage || "").trim(),
       };
     })
     .filter((item) => item.name);
 };
 
 export default function SellerDashboard() {
-  const { user, isLoaded, isSignedIn, isProfileComplete, getToken, refreshProfile } = useAppAuth();
+  const {
+    user,
+    isLoaded,
+    isSignedIn,
+    isProfileComplete,
+    getToken,
+    refreshProfile,
+  } = useAppAuth();
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -53,9 +72,9 @@ export default function SellerDashboard() {
     mobile: "",
     address: "",
     website: "",
-    gstNumber: "",           
-    industry: "",            
-    profilePhoto: null,      
+    gstNumber: "",
+    industry: "",
+    profilePhoto: null,
     profilePhotoPreview: "",
   });
 
@@ -73,9 +92,12 @@ export default function SellerDashboard() {
   const [selectedImages, setSelectedImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [requestedCategoryImage, setRequestedCategoryImage] = useState(null);
-  const [requestedCategoryPreview, setRequestedCategoryPreview] = useState(null);
-  const [requestedSubcategoryImage, setRequestedSubcategoryImage] = useState(null);
-  const [requestedSubcategoryPreview, setRequestedSubcategoryPreview] = useState(null);
+  const [requestedCategoryPreview, setRequestedCategoryPreview] =
+    useState(null);
+  const [requestedSubcategoryImage, setRequestedSubcategoryImage] =
+    useState(null);
+  const [requestedSubcategoryPreview, setRequestedSubcategoryPreview] =
+    useState(null);
   const [editingId, setEditingId] = useState(null);
 
   const selectedCategoryData = useMemo(() => {
@@ -99,7 +121,7 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     }
   }, [isLoaded, isSignedIn, navigate]);
 
@@ -108,14 +130,17 @@ export default function SellerDashboard() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-lg text-center p-10 bg-white rounded-3xl shadow-xl border border-gray-100">
           <div className="text-6xl mb-6">!</div>
-          <h2 className="text-3xl font-bold text-red-600 mb-4">Profile Incomplete</h2>
+          <h2 className="text-3xl font-bold text-red-600 mb-4">
+            Profile Incomplete
+          </h2>
           <p className="text-gray-600 mb-8 text-lg">
-            Aapka business profile complete nahi hai.<br />
+            Aapka business profile complete nahi hai.
+            <br />
             Products add karne ke liye pehle apna profile complete kar lijiye.
           </p>
 
           <button
-            onClick={() => navigate('/complete-profile')}
+            onClick={() => navigate("/complete-profile")}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-2xl font-semibold text-lg transition-all"
           >
             Complete Profile Now
@@ -130,22 +155,34 @@ export default function SellerDashboard() {
   }
 
   if (!isLoaded) {
-    return <div className="min-h-screen flex items-center justify-center text-xl bg-gray-50">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl bg-gray-50">
+        Loading...
+      </div>
+    );
   }
 
   if (!isSignedIn) {
-    return <div className="min-h-screen flex items-center justify-center text-xl bg-gray-50">Redirecting...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl bg-gray-50">
+        Redirecting...
+      </div>
+    );
   }
 
   const fetchAllCategories = async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`);
       if (res.data.success) {
-        const incoming = Array.isArray(res.data.categories) ? res.data.categories : [];
+        const incoming = Array.isArray(res.data.categories)
+          ? res.data.categories
+          : [];
 
         const map = new Map();
         for (const item of incoming) {
-          const name = String(item?.name || '').trim().toLowerCase();
+          const name = String(item?.name || "")
+            .trim()
+            .toLowerCase();
           if (!name) continue;
           map.set(name, {
             name,
@@ -153,17 +190,25 @@ export default function SellerDashboard() {
           });
         }
 
+        // Add any default categories that might be missing from DB
         for (const name of DEFAULT_CATEGORIES) {
           if (!map.has(name)) {
             map.set(name, { name, subcategories: [] });
           }
         }
 
-        const sorted = [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+        const sorted = [...map.values()].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
         setAllCategories(sorted);
       }
     } catch (err) {
-      const fallback = DEFAULT_CATEGORIES.map((name) => ({ name, subcategories: [] }));
+      console.error("Error fetching categories:", err);
+      // Fallback to default categories if API fails
+      const fallback = DEFAULT_CATEGORIES.map((name) => ({
+        name,
+        subcategories: [],
+      }));
       setAllCategories(fallback);
     }
   };
@@ -182,25 +227,18 @@ export default function SellerDashboard() {
     }
   };
 
-
-
   const fetchMyRequests = async () => {
-  try {
-    const token = await getToken();
-    const res = await axios.get(`${API_BASE_URL}/requests/my`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    
-    // Do something with the data
-    // For example:
-    // setMyRequests(res.data.requests || []);
-    
-    console.log("My Requests:", res.data);
-  } catch (err) {
-    console.error("Error fetching my requests:", err);
-    // Optionally show a toast/notification
-  }
-};
+    try {
+      const token = await getToken();
+      const res = await axios.get(`${API_BASE_URL}/requests/my`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("My Requests:", res.data);
+    } catch (err) {
+      console.error("Error fetching my requests:", err);
+    }
+  };
 
   const fetchMyEnquiries = async () => {
     try {
@@ -214,7 +252,7 @@ export default function SellerDashboard() {
     }
   };
 
-const fetchBusinessProfile = async () => {
+  const fetchBusinessProfile = async () => {
     try {
       setProfileLoading(true);
       const token = await getToken();
@@ -225,7 +263,8 @@ const fetchBusinessProfile = async () => {
       const profile = res.data?.user || {};
 
       setProfileForm({
-        businessName: profile.company || user?.unsafeMetadata?.businessName || "",
+        businessName:
+          profile.company || user?.unsafeMetadata?.businessName || "",
         email: profile.email || user?.primaryEmailAddress?.emailAddress || "",
         mobile: profile.phone || user?.unsafeMetadata?.mobile || "",
         address: profile.address || user?.unsafeMetadata?.address || "",
@@ -233,7 +272,8 @@ const fetchBusinessProfile = async () => {
         gstNumber: profile.gstNumber || user?.unsafeMetadata?.gstNumber || "",
         industry: profile.industry || user?.unsafeMetadata?.industry || "",
         profilePhoto: null,
-        profilePhotoPreview: profile.profilePhoto || user?.unsafeMetadata?.profilePhoto || "",
+        profilePhotoPreview:
+          profile.profilePhoto || user?.unsafeMetadata?.profilePhoto || "",
       });
     } catch (err) {
       console.error("Error fetching business profile:", err);
@@ -241,11 +281,10 @@ const fetchBusinessProfile = async () => {
       setProfileLoading(false);
     }
   };
-const handleProfileInputChange = (e) => {
+  const handleProfileInputChange = (e) => {
     const { name, value } = e.target;
     setProfileForm((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleProfilePhotoChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -257,14 +296,17 @@ const handleProfileInputChange = (e) => {
     }
   };
 
-const handleProfileSubmit = async (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
-
-    if (!profileForm.businessName || !profileForm.email || !profileForm.mobile || !profileForm.address) {
+    if (
+      !profileForm.businessName ||
+      !profileForm.email ||
+      !profileForm.mobile ||
+      !profileForm.address
+    ) {
       alert("Business name, email, mobile and address are required");
       return;
     }
-
     try {
       setProfileSubmitting(true);
       const token = await getToken();
@@ -282,23 +324,17 @@ const handleProfileSubmit = async (e) => {
         formData.append("profilePhoto", profileForm.profilePhoto);
       }
 
-      await axios.post(
-        `${API_BASE_URL}/auth/complete-profile`,
-        formData,
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data"
-          },
-        }
-      );
+      await axios.post(`${API_BASE_URL}/auth/complete-profile`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       await refreshProfile(token);
       await fetchBusinessProfile();
-      
+
       alert("Business profile updated successfully!");
-      // Optionally switch back to summary view or stay
-      // setActiveTab("products");
     } catch (err) {
       console.error("Profile update error:", err);
       alert(err.response?.data?.message || "Failed to update business profile");
@@ -314,15 +350,13 @@ const handleProfileSubmit = async (e) => {
       const res = await axios.patch(
         `${API_BASE_URL}/enquiries/my/${enquiryId}/status`,
         { status },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       setEnquiries((prev) =>
         prev.map((enq) =>
-          enq._id === enquiryId
-            ? { ...enq, ...res.data.enquiry }
-            : enq
-        )
+          enq._id === enquiryId ? { ...enq, ...res.data.enquiry } : enq,
+        ),
       );
     } catch (err) {
       console.error("Error updating enquiry status:", err);
@@ -354,18 +388,18 @@ const handleProfileSubmit = async (e) => {
       return;
     }
     setSelectedImages(files);
-    setPreviewUrls(files.map(file => URL.createObjectURL(file)));
+    setPreviewUrls(files.map((file) => URL.createObjectURL(file)));
   };
 
   const handleCategoryChange = (value) => {
     setForm((prev) => ({
       ...prev,
       category: value,
-      subcategory: value === 'other' ? 'other' : '',
-      otherCategory: '',
-      otherSubcategory: '',
+      subcategory: value === "other" ? "other" : "",
+      otherCategory: "",
+      otherSubcategory: "",
     }));
-    if (value !== 'other') {
+    if (value !== "other") {
       setRequestedCategoryImage(null);
     }
     setRequestedSubcategoryImage(null);
@@ -375,9 +409,9 @@ const handleProfileSubmit = async (e) => {
     setForm((prev) => ({
       ...prev,
       subcategory: value,
-      otherSubcategory: value === 'other' ? prev.otherSubcategory : '',
+      otherSubcategory: value === "other" ? prev.otherSubcategory : "",
     }));
-    if (value !== 'other') {
+    if (value !== "other") {
       setRequestedSubcategoryImage(null);
     }
   };
@@ -385,19 +419,42 @@ const handleProfileSubmit = async (e) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate industry is set before allowing product submission
+    if (!profileForm.industry || !profileForm.industry.trim()) {
+      alert(
+        "Please set your Industry in Business Profile first before adding products!",
+      );
+      setActiveTab("profile");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (!form.name || !form.category || !form.subcategory || !form.price) {
       alert("Product Name, Category, Subcategory and Price are required");
       return;
     }
 
-    if (form.category === 'other' && !form.otherCategory.trim()) {
-      alert('Please enter your custom category name');
+    if (form.category === "other" && !form.otherCategory.trim()) {
+      alert("Please enter your custom category name");
       return;
     }
 
-    if (form.subcategory === 'other' && !form.otherSubcategory.trim()) {
-      alert('Please enter your custom subcategory name');
+    if (form.subcategory === "other" && !form.otherSubcategory.trim()) {
+      alert("Please enter your custom subcategory name");
       return;
+    }
+
+    // Validate that selected category matches with industry (with warning, not blocking)
+    const selectedIndustry = profileForm.industry.trim().toLowerCase();
+    const selectedCategory = form.category.trim().toLowerCase();
+
+    if (form.category !== "other" && selectedCategory !== selectedIndustry) {
+      const confirmDifferentCategory = window.confirm(
+        `You selected "${toTitle(form.category)}" category but your industry is "${toTitle(selectedIndustry)}".\n\nDo you want to continue with this different category?`,
+      );
+      if (!confirmDifferentCategory) {
+        return;
+      }
     }
     setSubmitting(true);
     try {
@@ -406,14 +463,17 @@ const handleProfileSubmit = async (e) => {
 
       formData.append("name", form.name);
       formData.append("category", form.category.toLowerCase().trim());
-      formData.append("subcategory", (form.subcategory || '').toLowerCase().trim());
-      formData.append("otherCategory", form.otherCategory || '');
-      formData.append("otherSubcategory", form.otherSubcategory || '');
+      formData.append(
+        "subcategory",
+        (form.subcategory || "").toLowerCase().trim(),
+      );
+      formData.append("otherCategory", form.otherCategory || "");
+      formData.append("otherSubcategory", form.otherSubcategory || "");
       formData.append("price", form.price);
       formData.append("moq", form.moq || 100);
       formData.append("description", form.description || "");
 
-      selectedImages.forEach(image => formData.append("images", image));
+      selectedImages.forEach((image) => formData.append("images", image));
       if (requestedCategoryImage) {
         formData.append("requestedCategoryImage", requestedCategoryImage);
       }
@@ -423,11 +483,11 @@ const handleProfileSubmit = async (e) => {
 
       if (editingId) {
         await axios.put(`${API_BASE_URL}/products/${editingId}`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
       } else {
         await axios.post(`${API_BASE_URL}/products`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
       }
 
@@ -436,7 +496,11 @@ const handleProfileSubmit = async (e) => {
       fetchMyProducts();
     } catch (error) {
       console.error("Add/Update Product Error:", error);
-      alert(error.response?.data?.message || error.response?.data?.error || "Failed to save product. Please try again.");
+      alert(
+        error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Failed to save product. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -466,9 +530,9 @@ const handleProfileSubmit = async (e) => {
     setForm({
       name: product.name,
       category: product.category,
-      subcategory: product.subcategory || '',
-      otherCategory: product.requestedCategoryName || '',
-      otherSubcategory: product.requestedSubcategoryName || '',
+      subcategory: product.subcategory || "",
+      otherCategory: product.requestedCategoryName || "",
+      otherSubcategory: product.requestedSubcategoryName || "",
       price: product.price,
       moq: product.moq || 100,
       description: product.description || "",
@@ -484,7 +548,8 @@ const handleProfileSubmit = async (e) => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    if (!window.confirm("Are you sure you want to delete this product?"))
+      return;
 
     try {
       const token = await getToken();
@@ -503,9 +568,12 @@ const handleProfileSubmit = async (e) => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center mb-10">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900">Seller Dashboard</h1>
+            <h1 className="text-4xl font-bold text-gray-900">
+              Seller Dashboard
+            </h1>
             <p className="text-gray-600 mt-2">
-              Welcome back, {user?.firstName || user?.unsafeMetadata?.businessName || "User"}
+              Welcome back,{" "}
+              {user?.firstName || user?.unsafeMetadata?.businessName || "User"}
             </p>
           </div>
           <button
@@ -520,7 +588,9 @@ const handleProfileSubmit = async (e) => {
           <button
             onClick={() => setActiveTab("products")}
             className={`flex-1 py-5 text-lg font-semibold rounded-tl-3xl transition-all ${
-              activeTab === "products" ? "border-b-4 border-emerald-600 text-emerald-700" : "text-gray-500 hover:text-gray-700"
+              activeTab === "products"
+                ? "border-b-4 border-emerald-600 text-emerald-700"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             My Products ({products.length})
@@ -528,7 +598,9 @@ const handleProfileSubmit = async (e) => {
           <button
             onClick={() => setActiveTab("enquiries")}
             className={`flex-1 py-5 text-lg font-semibold transition-all ${
-              activeTab === "enquiries" ? "border-b-4 border-emerald-600 text-emerald-700" : "text-gray-500 hover:text-gray-700"
+              activeTab === "enquiries"
+                ? "border-b-4 border-emerald-600 text-emerald-700"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             Enquiries ({enquiries.length})
@@ -536,7 +608,9 @@ const handleProfileSubmit = async (e) => {
           <button
             onClick={() => setActiveTab("profile")}
             className={`flex-1 py-5 text-lg font-semibold rounded-tr-3xl transition-all ${
-              activeTab === "profile" ? "border-b-4 border-emerald-600 text-emerald-700" : "text-gray-500 hover:text-gray-700"
+              activeTab === "profile"
+                ? "border-b-4 border-emerald-600 text-emerald-700"
+                : "text-gray-500 hover:text-gray-700"
             }`}
           >
             Business Profile
@@ -550,7 +624,10 @@ const handleProfileSubmit = async (e) => {
                 {editingId ? "Edit Product" : "Add New Product"}
               </h2>
 
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form
+                onSubmit={handleSubmit}
+                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+              >
                 <input
                   type="text"
                   placeholder="Product Name *"
@@ -568,18 +645,22 @@ const handleProfileSubmit = async (e) => {
                 >
                   <option value="">Select Category *</option>
                   {allCategories.map((cat) => (
-                    <option key={cat.name} value={cat.name}>{toTitle(cat.name)}</option>
+                    <option key={cat.name} value={cat.name}>
+                      {toTitle(cat.name)}
+                    </option>
                   ))}
-                  <option value="other">Other (Not Listed)</option>
+                  <option value="other">+ Request New Category</option>
                 </select>
 
-                {form.category === 'other' && (
+                {form.category === "other" && (
                   <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <input
                       type="text"
                       placeholder="Enter Custom Category Name *"
                       value={form.otherCategory}
-                      onChange={(e) => setForm({ ...form, otherCategory: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, otherCategory: e.target.value })
+                      }
                       required
                       className="px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
                     />
@@ -587,14 +668,16 @@ const handleProfileSubmit = async (e) => {
                       type="text"
                       placeholder="Enter Custom Subcategory Name *"
                       value={form.otherSubcategory}
-                      onChange={(e) => setForm({ ...form, otherSubcategory: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, otherSubcategory: e.target.value })
+                      }
                       required
                       className="px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 )}
 
-                {form.category && form.category !== 'other' && (
+                {form.category && form.category !== "other" && (
                   <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <select
                       value={form.subcategory}
@@ -603,31 +686,37 @@ const handleProfileSubmit = async (e) => {
                     >
                       <option value="">Select Subcategory *</option>
                       {subcategoryOptions.map((sub) => (
-                        <option key={sub.name} value={sub.name}>{toTitle(sub.name)}</option>
+                        <option key={sub.name} value={sub.name}>
+                          {toTitle(sub.name)}
+                        </option>
                       ))}
-                      <option value="other">Other (Not Listed)</option>
+                      <option value="other">+ Request New Subcategory</option>
                     </select>
 
-                    {form.subcategory === 'other' ? (
+                    {form.subcategory === "other" ? (
                       <input
                         type="text"
                         placeholder="Enter Custom Subcategory Name *"
                         value={form.otherSubcategory}
-                        onChange={(e) => setForm({ ...form, otherSubcategory: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, otherSubcategory: e.target.value })
+                        }
                         required
                         className="px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
                       />
                     ) : (
                       <div className="flex items-center rounded-2xl border border-gray-200 px-4 text-sm text-gray-500">
-                        Subcategory required hai. Agar list me missing ho to Other select karke request bhejiye.
+                        Subcategory required hai. Agar list me missing ho to
+                        Other select karke request bhejiye.
                       </div>
                     )}
                   </div>
                 )}
 
-                {(form.category === 'other' || form.subcategory === 'other') && (
+                {(form.category === "other" ||
+                  form.subcategory === "other") && (
                   <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {form.category === 'other' && (
+                    {form.category === "other" && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           New Category Reference Image (Optional)
@@ -638,17 +727,23 @@ const handleProfileSubmit = async (e) => {
                           onChange={(e) => {
                             const file = e.target.files?.[0] || null;
                             setRequestedCategoryImage(file);
-                            setRequestedCategoryPreview(file ? URL.createObjectURL(file) : null);
+                            setRequestedCategoryPreview(
+                              file ? URL.createObjectURL(file) : null,
+                            );
                           }}
                           className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
                         />
                         {requestedCategoryPreview && (
-                          <img src={requestedCategoryPreview} alt="Category preview" className="mt-3 h-24 w-24 object-cover rounded-lg border" />
+                          <img
+                            src={requestedCategoryPreview}
+                            alt="Category preview"
+                            className="mt-3 h-24 w-24 object-cover rounded-lg border"
+                          />
                         )}
                       </div>
                     )}
 
-                    {form.subcategory === 'other' && (
+                    {form.subcategory === "other" && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           New Subcategory Reference Image (Optional)
@@ -659,20 +754,26 @@ const handleProfileSubmit = async (e) => {
                           onChange={(e) => {
                             const file = e.target.files?.[0] || null;
                             setRequestedSubcategoryImage(file);
-                            setRequestedSubcategoryPreview(file ? URL.createObjectURL(file) : null);
+                            setRequestedSubcategoryPreview(
+                              file ? URL.createObjectURL(file) : null,
+                            );
                           }}
                           className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
                         />
                         {requestedSubcategoryPreview && (
-                          <img src={requestedSubcategoryPreview} alt="Subcategory preview" className="mt-3 h-24 w-24 object-cover rounded-lg border" />
+                          <img
+                            src={requestedSubcategoryPreview}
+                            alt="Subcategory preview"
+                            className="mt-3 h-24 w-24 object-cover rounded-lg border"
+                          />
                         )}
                       </div>
                     )}
 
                     <div className="md:col-span-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
-                      {form.category === 'other'
-                        ? 'New category request sending to super admin for approval.'
-                        : 'Missing subcategory request will be sent to super admin. Final subcategory image will be approved by super admin.'}
+                      {form.category === "other"
+                        ? "New category request sending to super admin for approval."
+                        : "Missing subcategory request will be sent to super admin. Final subcategory image will be approved by super admin."}
                     </div>
                   </div>
                 )}
@@ -697,7 +798,9 @@ const handleProfileSubmit = async (e) => {
                 <textarea
                   placeholder="Product Description (Optional)"
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
                   className="md:col-span-2 px-5 py-4 border border-gray-300 rounded-2xl h-32 focus:outline-none focus:border-emerald-500"
                 />
 
@@ -731,15 +834,23 @@ const handleProfileSubmit = async (e) => {
                   disabled={submitting}
                   className="md:col-span-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white py-4 rounded-2xl font-semibold text-lg transition-all"
                 >
-                  {submitting ? "Saving..." : editingId ? "Update Product" : "Add Product"}
+                  {submitting
+                    ? "Saving..."
+                    : editingId
+                      ? "Update Product"
+                      : "Add Product"}
                 </button>
               </form>
             </div>
 
-            <h2 className="text-3xl font-bold mb-8">My Products ({products.length})</h2>
+            <h2 className="text-3xl font-bold mb-8">
+              My Products ({products.length})
+            </h2>
 
             {loading ? (
-              <div className="text-center py-20 text-gray-500">Loading your products...</div>
+              <div className="text-center py-20 text-gray-500">
+                Loading your products...
+              </div>
             ) : products.length === 0 ? (
               <div className="bg-white rounded-3xl p-20 text-center text-gray-500">
                 You haven't added any products yet.
@@ -747,7 +858,10 @@ const handleProfileSubmit = async (e) => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {products.map((p) => (
-                  <div key={p._id} className="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6">
+                  <div
+                    key={p._id}
+                    className="bg-white rounded-3xl shadow hover:shadow-xl transition-all p-6"
+                  >
                     {p.images?.[0] && (
                       <img
                         src={p.images[0]}
@@ -755,15 +869,17 @@ const handleProfileSubmit = async (e) => {
                         className="w-full h-52 object-cover rounded-2xl mb-5"
                       />
                     )}
-                    <h3 className="font-semibold text-xl line-clamp-2">{p.name}</h3>
+                    <h3 className="font-semibold text-xl line-clamp-2">
+                      {p.name}
+                    </h3>
                     <p className="text-emerald-600 font-bold text-2xl mt-2">
                       Rs {p.price?.toLocaleString("en-IN")}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
                       MOQ: {p.moq || "N/A"} • Category: {p.category}
-                      {p.subcategory ? ` / ${p.subcategory}` : ''}
+                      {p.subcategory ? ` / ${p.subcategory}` : ""}
                     </p>
-                    {p.taxonomyStatus === 'pending' && (
+                    {p.taxonomyStatus === "pending" && (
                       <p className="text-xs mt-2 text-amber-700 bg-amber-50 inline-block px-2 py-1 rounded-lg">
                         Pending taxonomy approval
                       </p>
@@ -800,20 +916,26 @@ const handleProfileSubmit = async (e) => {
 
             {enquiries.length === 0 ? (
               <div className="p-20 text-center text-gray-500 text-lg">
-                No enquiries received yet. Start adding products to get inquiries!
+                No enquiries received yet. Start adding products to get
+                inquiries!
               </div>
             ) : (
               <div className="divide-y">
                 {enquiries.map((enq) => (
-                  <div key={enq._id} className="p-8 hover:bg-gray-50 transition">
+                  <div
+                    key={enq._id}
+                    className="p-8 hover:bg-gray-50 transition"
+                  >
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-semibold text-xl">
-                          {enq.productId?.name || enq.productName || "Buy Requirement"}
+                          {enq.productId?.name ||
+                            enq.productName ||
+                            "Buy Requirement"}
                         </h3>
                         {enq.productId?.price ? (
                           <p className="text-emerald-600 font-medium">
-                            Rs {enq.productId.price.toLocaleString('en-IN')}
+                            Rs {enq.productId.price.toLocaleString("en-IN")}
                           </p>
                         ) : (
                           <p className="text-amber-600 font-medium">
@@ -821,7 +943,9 @@ const handleProfileSubmit = async (e) => {
                           </p>
                         )}
                       </div>
-                      <span className={`px-5 py-1.5 rounded-full text-sm font-medium ${getStatusClasses(enq.status)}`}>
+                      <span
+                        className={`px-5 py-1.5 rounded-full text-sm font-medium ${getStatusClasses(enq.status)}`}
+                      >
                         {enq.status.toUpperCase()}
                       </span>
                     </div>
@@ -830,25 +954,37 @@ const handleProfileSubmit = async (e) => {
                       <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
                         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
                           <span className="text-amber-700 block">Category</span>
-                          <span className="font-semibold">{enq.category || "-"}</span>
+                          <span className="font-semibold">
+                            {enq.category || "-"}
+                          </span>
                         </div>
                         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-                          <span className="text-amber-700 block">Subcategory</span>
-                          <span className="font-semibold">{enq.subcategory || "-"}</span>
+                          <span className="text-amber-700 block">
+                            Subcategory
+                          </span>
+                          <span className="font-semibold">
+                            {enq.subcategory || "-"}
+                          </span>
                         </div>
                         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
                           <span className="text-amber-700 block">Quantity</span>
-                          <span className="font-semibold">{enq.quantity || "-"}</span>
+                          <span className="font-semibold">
+                            {enq.quantity || "-"}
+                          </span>
                         </div>
                         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
                           <span className="text-amber-700 block">GST</span>
-                          <span className="font-semibold">{enq.gstNumber || "-"}</span>
+                          <span className="font-semibold">
+                            {enq.gstNumber || "-"}
+                          </span>
                         </div>
                       </div>
                     )}
 
                     <div className="mt-6 bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                      <p className="font-medium text-gray-700 mb-3">Buyer Information</p>
+                      <p className="font-medium text-gray-700 mb-3">
+                        Buyer Information
+                      </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 text-sm">
                         <div>
                           <span className="text-gray-500 block">Name</span>
@@ -856,18 +992,28 @@ const handleProfileSubmit = async (e) => {
                         </div>
                         <div>
                           <span className="text-gray-500 block">Email</span>
-                          <span className="font-semibold text-blue-600">{enq.buyerEmail}</span>
+                          <span className="font-semibold text-blue-600">
+                            {enq.buyerEmail}
+                          </span>
                         </div>
                         {enq.buyerPhone && (
                           <div>
                             <span className="text-gray-500 block">Phone</span>
-                            <span className="font-semibold">{enq.buyerPhone}</span>
+                            <span className="font-semibold">
+                              {enq.buyerPhone}
+                            </span>
                           </div>
                         )}
                         {enq.buyerCompany && (
-                          <div className={enq.buyerPhone ? "md:col-span-2" : "md:col-span-1"}>
+                          <div
+                            className={
+                              enq.buyerPhone ? "md:col-span-2" : "md:col-span-1"
+                            }
+                          >
                             <span className="text-gray-500 block">Company</span>
-                            <span className="font-semibold">{enq.buyerCompany}</span>
+                            <span className="font-semibold">
+                              {enq.buyerCompany}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -875,25 +1021,45 @@ const handleProfileSubmit = async (e) => {
 
                     <div className="mt-5 flex flex-wrap gap-3">
                       <button
-                        onClick={() => updateEnquiryStatus(enq._id, "contacted")}
-                        disabled={statusUpdatingId === enq._id || enq.status === "contacted"}
+                        onClick={() =>
+                          updateEnquiryStatus(enq._id, "contacted")
+                        }
+                        disabled={
+                          statusUpdatingId === enq._id ||
+                          enq.status === "contacted"
+                        }
                         className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white text-sm font-medium transition"
                       >
-                        {statusUpdatingId === enq._id && enq.status !== "contacted" ? "Updating..." : "Mark Contacted"}
+                        {statusUpdatingId === enq._id &&
+                        enq.status !== "contacted"
+                          ? "Updating..."
+                          : "Mark Contacted"}
                       </button>
                       <button
                         onClick={() => updateEnquiryStatus(enq._id, "rejected")}
-                        disabled={statusUpdatingId === enq._id || enq.status === "rejected"}
+                        disabled={
+                          statusUpdatingId === enq._id ||
+                          enq.status === "rejected"
+                        }
                         className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white text-sm font-medium transition"
                       >
-                        {statusUpdatingId === enq._id && enq.status !== "rejected" ? "Updating..." : "Mark Rejected"}
+                        {statusUpdatingId === enq._id &&
+                        enq.status !== "rejected"
+                          ? "Updating..."
+                          : "Mark Rejected"}
                       </button>
                       <button
                         onClick={() => updateEnquiryStatus(enq._id, "pending")}
-                        disabled={statusUpdatingId === enq._id || enq.status === "pending"}
+                        disabled={
+                          statusUpdatingId === enq._id ||
+                          enq.status === "pending"
+                        }
                         className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white text-sm font-medium transition"
                       >
-                        {statusUpdatingId === enq._id && enq.status !== "pending" ? "Updating..." : "Set Pending"}
+                        {statusUpdatingId === enq._id &&
+                        enq.status !== "pending"
+                          ? "Updating..."
+                          : "Set Pending"}
                       </button>
                     </div>
 
@@ -906,22 +1072,24 @@ const handleProfileSubmit = async (e) => {
                     {enq.enquiryType === "contact_click" && (
                       <div className="mt-4 text-sm bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl">
                         Buyer clicked your{" "}
-                        <span className="font-semibold capitalize">{enq.contactMethod || "contact detail"}</span>
-                        {enq.contactValue ? (
-                          <>
-                            {" "}({enq.contactValue})
-                          </>
-                        ) : null}
-                        {" "}from explore page.
+                        <span className="font-semibold capitalize">
+                          {enq.contactMethod || "contact detail"}
+                        </span>
+                        {enq.contactValue ? <> ({enq.contactValue})</> : null}{" "}
+                        from explore page.
                       </div>
                     )}
 
                     <p className="text-xs text-gray-400 mt-6">
-                      Received: {new Date(enq.createdAt).toLocaleString('en-IN')}
+                      Received:{" "}
+                      {new Date(enq.createdAt).toLocaleString("en-IN")}
                     </p>
                     {enq.sellerStatusUpdatedAt && (
                       <p className="text-xs text-gray-400 mt-2">
-                        Seller status updated: {new Date(enq.sellerStatusUpdatedAt).toLocaleString('en-IN')}
+                        Seller status updated:{" "}
+                        {new Date(enq.sellerStatusUpdatedAt).toLocaleString(
+                          "en-IN",
+                        )}
                       </p>
                     )}
                   </div>
@@ -931,111 +1099,125 @@ const handleProfileSubmit = async (e) => {
           </div>
         )}
 
-      {activeTab === "profile" && (
-        <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8">
-          
-          {/* Left Side - Business Summary */}
-          <div className="bg-white rounded-3xl shadow-xl p-8">
-            <p className="text-sm uppercase tracking-[0.2em] text-emerald-700 font-semibold">
-              Business Summary
-            </p>
-            <h2 className="text-3xl font-bold text-gray-900 mt-3">
-              {profileForm.businessName || "Your Business"}
-            </h2>
+        {activeTab === "profile" && (
+          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8">
+            {/* Left Side - Business Summary */}
+            <div className="bg-white rounded-3xl shadow-xl p-8">
+              <p className="text-sm uppercase tracking-[0.2em] text-emerald-700 font-semibold">
+                Business Summary
+              </p>
+              <h2 className="text-3xl font-bold text-gray-900 mt-3">
+                {profileForm.businessName || "Your Business"}
+              </h2>
 
-            {profileForm.profilePhotoPreview && (
-              <img
-                src={profileForm.profilePhotoPreview}
-                alt="Business Logo"
-                className="w-24 h-24 object-cover rounded-2xl mt-6 border border-gray-200"
-              />
-            )}       
-             <p className="text-gray-600 mt-3">
+              {profileForm.profilePhotoPreview && (
+                <img
+                  src={profileForm.profilePhotoPreview}
+                  alt="Business Logo"
+                  className="w-24 h-24 object-cover rounded-2xl mt-6 border border-gray-200"
+                />
+              )}
+              <p className="text-gray-600 mt-3">
                 You can update your business profile information here.
               </p>
 
               <div className="mt-8 space-y-5">
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
                   <p className="text-sm text-gray-500">Business Name</p>
-                  <p className="text-lg font-semibold text-gray-900 mt-1">{profileForm.businessName || "-"}</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1">
+                    {profileForm.businessName || "-"}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
                   <p className="text-sm text-gray-500">Email ID</p>
-                  <p className="text-lg font-semibold text-gray-900 mt-1 break-all">{profileForm.email || "-"}</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1 break-all">
+                    {profileForm.email || "-"}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
                   <p className="text-sm text-gray-500">Contact Number</p>
-                  <p className="text-lg font-semibold text-gray-900 mt-1">{profileForm.mobile || "-"}</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1">
+                    {profileForm.mobile || "-"}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
                   <p className="text-sm text-gray-500">Address</p>
-                  <p className="text-lg font-semibold text-gray-900 mt-1 whitespace-pre-line">{profileForm.address || "-"}</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1 whitespace-pre-line">
+                    {profileForm.address || "-"}
+                  </p>
                 </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
-                <p className="text-sm text-gray-500">GST Number</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">
-                  {profileForm.gstNumber || "-"}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
-                <p className="text-sm text-gray-500">Industry</p>
-                <p className="text-lg font-semibold text-gray-900 mt-1">
-                  {profileForm.industry ? toTitle(profileForm.industry) : "-"}
-                </p>
-              </div>
+                  <p className="text-sm text-gray-500">GST Number</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1">
+                    {profileForm.gstNumber || "-"}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                  <p className="text-sm text-gray-500">Industry</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1">
+                    {profileForm.industry ? toTitle(profileForm.industry) : "-"}
+                  </p>
+                </div>
                 <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
                   <p className="text-sm text-gray-500">Website (Optional)</p>
-                  <p className="text-lg font-semibold text-gray-900 mt-1 break-all">{profileForm.website || "-"}</p>
+                  <p className="text-lg font-semibold text-gray-900 mt-1 break-all">
+                    {profileForm.website || "-"}
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="bg-white rounded-3xl shadow-xl p-8">
-              <h2 className="text-2xl font-semibold mb-2">Edit Business Profile</h2>
+              <h2 className="text-2xl font-semibold mb-2">
+                Edit Business Profile
+              </h2>
               <p className="text-gray-600 mb-8">
                 You can update your business profile information here.
               </p>
 
               {profileLoading ? (
-              <div className="text-gray-500">Loading profile...</div>
-            ) : (
-              <form onSubmit={handleProfileSubmit} className="space-y-6">
-                
-                {/* Profile Photo Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Business Profile Photo / Logo
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfilePhotoChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                  />
-                  {profileForm.profilePhotoPreview && (
-                    <img
-                      src={profileForm.profilePhotoPreview}
-                      alt="Preview"
-                      className="mt-4 w-28 h-28 object-cover rounded-2xl border border-gray-200"
+                <div className="text-gray-500">Loading profile...</div>
+              ) : (
+                <form onSubmit={handleProfileSubmit} className="space-y-6">
+                  {/* Profile Photo Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Profile Photo / Logo
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePhotoChange}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
                     />
-                  )}
-                </div>
+                    {profileForm.profilePhotoPreview && (
+                      <img
+                        src={profileForm.profilePhotoPreview}
+                        alt="Preview"
+                        className="mt-4 w-28 h-28 object-cover rounded-2xl border border-gray-200"
+                      />
+                    )}
+                  </div>
 
-                {/* Business Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
-                  <input
-                    type="text"
-                    name="businessName"
-                    value={profileForm.businessName}
-                    onChange={handleProfileInputChange}
-                    className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
-                    required
-                  />
-                </div>
+                  {/* Business Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="businessName"
+                      value={profileForm.businessName}
+                      onChange={handleProfileInputChange}
+                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email ID *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email ID *
+                    </label>
                     <input
                       type="email"
                       name="email"
@@ -1047,7 +1229,9 @@ const handleProfileSubmit = async (e) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Number *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contact Number *
+                    </label>
                     <input
                       type="tel"
                       name="mobile"
@@ -1059,7 +1243,9 @@ const handleProfileSubmit = async (e) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Address *
+                    </label>
                     <textarea
                       name="address"
                       rows="4"
@@ -1070,38 +1256,46 @@ const handleProfileSubmit = async (e) => {
                     />
                   </div>
                   <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Business Industry</label>
-                  <select
-                    name="industry"
-                    value={profileForm.industry}
-                    onChange={handleProfileInputChange}
-                    className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500 bg-white"
-                  >
-                    <option value="">Select Industry</option>
-                    {allCategories.map((cat) => (
-                      <option key={cat.name} value={cat.name}>
-                        {toTitle(cat.name)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Business Industry
+                    </label>
+                    <select
+                      name="industry"
+                      value={profileForm.industry}
+                      onChange={handleProfileInputChange}
+                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500 bg-white"
+                    >
+                      <option value="">Select Industry</option>
+                      {allCategories.map((cat) => (
+                        <option key={cat.name} value={cat.name}>
+                          {toTitle(cat.name)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* GST Number */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
-                  <input
-                    type="text"
-                    name="gstNumber"
-                    value={profileForm.gstNumber}
-                    onChange={handleProfileInputChange}
-                    placeholder="22AAAAA0000A1Z5"
-                    className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500 uppercase"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Optional but recommended for B2B trust</p>
-                </div>
+                  {/* GST Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      GST Number
+                    </label>
+                    <input
+                      type="text"
+                      name="gstNumber"
+                      value={profileForm.gstNumber}
+                      onChange={handleProfileInputChange}
+                      placeholder="22AAAAA0000A1Z5"
+                      className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-emerald-500 uppercase"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optional but recommended for B2B trust
+                    </p>
+                  </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Website
+                    </label>
                     <input
                       type="text"
                       name="website"
@@ -1112,13 +1306,14 @@ const handleProfileSubmit = async (e) => {
                     />
                   </div>
 
-
                   <button
                     type="submit"
                     disabled={profileSubmitting}
                     className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white py-4 rounded-2xl font-semibold text-lg transition-all"
                   >
-                    {profileSubmitting ? "Saving Profile..." : "Save Business Profile"}
+                    {profileSubmitting
+                      ? "Saving Profile..."
+                      : "Save Business Profile"}
                   </button>
                 </form>
               )}

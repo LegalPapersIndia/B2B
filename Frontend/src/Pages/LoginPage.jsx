@@ -1,3 +1,4 @@
+// src/Pages/LoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useSignIn } from "@clerk/clerk-react";
 import { useNavigate, Link } from "react-router-dom";
@@ -36,7 +37,7 @@ const LoginPage = () => {
       const nextProfileState = res?.user?.isProfileComplete;
       navigate(nextProfileState ? "/seller-dashboard" : "/complete-profile", { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to sign in. Please check your credentials.");
+      setError(err.response?.data?.message || "Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -61,12 +62,18 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-emerald-50 p-4">
-      <div className="w-full max-w-md bg-white shadow-xl rounded-3xl p-10">
-        <h2 className="text-3xl font-bold text-center mb-2">Welcome Back</h2>
-        <p className="text-gray-600 text-center mb-8">
-          Sign in with your company email and password, or continue with Google
-        </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 p-4">
+      <div className="w-full max-w-md bg-white shadow-2xl rounded-3xl p-10">
+        
+        <div className="text-center mb-10">
+          <div className="mx-auto w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mb-5">
+            <span className="text-3xl">🔑</span>
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
+          <p className="text-gray-600 mt-2">
+            Sign in to access your seller dashboard
+          </p>
+        </div>
 
         {error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -74,30 +81,30 @@ const LoginPage = () => {
           </div>
         )}
 
-        <form onSubmit={handleManualLogin} className="space-y-5">
+        <form onSubmit={handleManualLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-1">Email ID</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               placeholder="company@example.com"
-              className="w-full rounded-2xl border px-4 py-3 focus:outline-none focus:border-emerald-500"
+              className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-300 transition-all"
               required
               disabled={loading || googleLoading}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               placeholder="Enter your password"
-              className="w-full rounded-2xl border px-4 py-3 focus:outline-none focus:border-emerald-500"
+              className="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-300 transition-all"
               required
               disabled={loading || googleLoading}
             />
@@ -106,31 +113,31 @@ const LoginPage = () => {
           <button
             type="submit"
             disabled={loading || googleLoading}
-            className="w-full rounded-2xl bg-emerald-600 py-4 text-white font-semibold hover:bg-emerald-700 disabled:bg-gray-400 transition-all"
+            className="w-full py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold rounded-2xl text-lg transition-all active:scale-[0.98]"
           >
             {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
-        <div className="my-6 flex items-center gap-3">
+        <div className="my-8 flex items-center gap-4">
           <div className="h-px flex-1 bg-gray-200" />
-          <span className="text-xs uppercase tracking-wider text-gray-400">or</span>
+          <span className="text-xs uppercase tracking-widest text-gray-400">or continue with</span>
           <div className="h-px flex-1 bg-gray-200" />
         </div>
 
         <button
           onClick={loginWithGoogle}
           disabled={loading || googleLoading}
-          className="w-full flex items-center justify-center gap-3 border border-gray-300 py-4 rounded-2xl font-medium hover:bg-gray-50 transition-all text-lg disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-3 border border-gray-300 py-4 rounded-2xl font-medium hover:bg-gray-50 transition-all text-base disabled:opacity-60"
         >
           <FaGoogle className="text-red-500 text-2xl" />
-          {googleLoading ? "Connecting to Google..." : "Sign In with Google"}
+          {googleLoading ? "Connecting to Google..." : "Sign in with Google"}
         </button>
 
-        <p className="text-center text-sm mt-8 text-gray-600">
-          Need a new company account?{" "}
-          <Link to="/contact" className="text-indigo-600 font-semibold hover:underline">
-            Want to list your company
+        <p className="text-center text-sm mt-10 text-gray-600">
+          Don't have an account?{" "}
+          <Link to="/contact" className="text-orange-600 font-semibold hover:underline">
+            List your company as a seller
           </Link>
         </p>
       </div>

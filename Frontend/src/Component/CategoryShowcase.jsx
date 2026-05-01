@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+// src/components/CategoryShowcase.jsx
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { ArrowRight, Building2, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAppAuth } from "../context/AuthContext";
+import { defaultCategories, mergeCategories, getCategoryIcon } from "./categoriesConfig";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? `${import.meta.env.VITE_API_BASE_URL}/api`
   : "http://localhost:5000/api";
-
-export const categoriesData = [ /* ... your categoriesData remains the same ... */ ];
-
-const categoryMetaMap = new Map(categoriesData.map((item) => [item.slug, item]));
 
 const getImageUrl = (url) => {
   if (!url) return "https://picsum.photos/id/20/600/400";
@@ -23,9 +21,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.07,
-    },
+    transition: { staggerChildren: 0.07 },
   },
 };
 
@@ -38,37 +34,23 @@ export default function CategoryShowcase() {
   const { isSignedIn, isProfileComplete } = useAppAuth();
   const navigate = useNavigate();
 
-  const [allCategories, setAllCategories] = useState(categoriesData);
+const [allCategories, setAllCategories] = useState(defaultCategories);
   const [categoryProducts, setCategoryProducts] = useState({});
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
-  // Fetch categories
+  // Fetch Categories
   const fetchAllCategories = useCallback(async () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/categories`);
       if (res.data.success) {
-const merged = (res.data.categories || []).map((cat) => {
-          const fallback = categoryMetaMap.get(cat.name?.toLowerCase()) || 
-                          categoryMetaMap.get(cat.slug);
-          return {
-            slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, "-"),
-            name: fallback?.name || cat.name || "Category",
-            desc: cat.description || fallback?.desc || "Premium quality products",
-            image: cat.image 
-              ? getImageUrl(cat.image)
-              : (fallback?.image || "https://picsum.photos/id/20/600/400"),
-            subcategories: (cat.subcategories || []).map((sub) => ({
-              name: sub.name,
-              referenceImage: sub.referenceImage || '',
-            })),
-          };
-        });
-        setAllCategories(merged.length ? merged : categoriesData);
+        // Merge API categories with default categories (no duplicates)
+        const merged = mergeCategories(res.data.categories || [], defaultCategories);
+        setAllCategories(merged.length ? merged : defaultCategories);
       }
     } catch (err) {
-      console.warn("Failed to fetch categories, using fallback:", err);
-      setAllCategories(categoriesData);
+      console.warn("Failed to fetch categories, using default:", err);
+      setAllCategories(defaultCategories);
     } finally {
       setLoadingCategories(false);
     }
@@ -78,7 +60,7 @@ const merged = (res.data.categories || []).map((cat) => {
     fetchAllCategories();
   }, [fetchAllCategories]);
 
-  // Fetch products for all categories
+  // Fetch Products for all categories
   const fetchAllCategoryProducts = useCallback(async () => {
     if (!allCategories.length) return;
 
@@ -143,7 +125,7 @@ const merged = (res.data.categories || []).map((cat) => {
   return (
     <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-12 bg-gray-50/50">
       <div className="mb-12">
-        <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs uppercase tracking-widest mb-2">
+        <div className="flex items-center gap-2 text-orange-600 font-bold text-xs uppercase tracking-widest mb-2">
           <TrendingUp className="w-4 h-4" /> Global Wholesale Marketplace
         </div>
         <h2 className="text-4xl font-bold text-slate-900 tracking-tight">Industrial Categories</h2>
@@ -157,7 +139,8 @@ const merged = (res.data.categories || []).map((cat) => {
             const isLoading = loadingProducts || loadingCategories;
 
             return (
-              <motion.section
+<motion.section
+                id={`category-${category.slug}`}
                 key={category.slug}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -172,10 +155,11 @@ const merged = (res.data.categories || []).map((cat) => {
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/60 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/70 to-transparent" />
+                  
                   <div className="absolute inset-0 p-6 md:p-10 flex flex-col justify-end">
                     <div className="max-w-lg">
-                      <span className="inline-block px-3 py-1 bg-emerald-600 text-white text-xs font-semibold rounded-full mb-3">
+                      <span className="inline-block px-3 py-1 bg-orange-600 text-white text-xs font-semibold rounded-full mb-3">
                         {products.length} Subcategories
                       </span>
                       <h3 className="text-3xl font-bold text-white mb-2">{category.name}</h3>
@@ -184,7 +168,8 @@ const merged = (res.data.categories || []).map((cat) => {
                       </p>
                       <button
                         onClick={() => handleViewAll(category.slug)}
-                        className="flex items-center gap-2 bg-white text-slate-900 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-600 hover:text-white transition-all active:scale-95"
+                        className="flex items-center gap-2 bg-white text-slate-900 px-5 py-2.5 rounded-xl text-sm font-semibold 
+                                   hover:bg-orange-600 hover:text-white transition-all active:scale-95"
                       >
                         Explore Category <ArrowRight className="w-4 h-4" />
                       </button>
@@ -192,7 +177,7 @@ const merged = (res.data.categories || []).map((cat) => {
                   </div>
                 </div>
 
-                {/* Product / Subcategory Cards */}
+                {/* Subcategory Cards */}
                 <motion.div
                   variants={containerVariants}
                   initial="hidden"
@@ -217,8 +202,9 @@ const merged = (res.data.categories || []).map((cat) => {
                         <motion.div
                           key={`${category.slug}-${i}`}
                           variants={cardVariants}
-                          className="group bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all relative overflow-hidden"
+                          className="group bg-white rounded-2xl border border-slate-200 hover:border-orange-500 hover:shadow-xl transition-all relative overflow-hidden"
                         >
+                          {/* Image */}
                           <div className="relative aspect-square overflow-hidden bg-slate-100">
                             <img
                               src={displayImage}
@@ -228,6 +214,7 @@ const merged = (res.data.categories || []).map((cat) => {
                             />
                           </div>
 
+                          {/* Content */}
                           <div className="p-4">
                             <h5 className="font-semibold text-lg line-clamp-2 mb-3 text-slate-800">
                               {product.subcategory
@@ -254,7 +241,9 @@ const merged = (res.data.categories || []).map((cat) => {
 
                             <button
                               onClick={() => handleExploreSubcategory(product)}
-                              className="mt-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 active:scale-95"
+                              className="mt-2 w-full py-3 bg-orange-600 hover:bg-orange-700 
+                                         text-white rounded-xl text-sm font-medium transition-all 
+                                         flex items-center justify-center gap-2 active:scale-95"
                             >
                               Explore Subcategory
                               <ArrowRight className="w-4 h-4" />

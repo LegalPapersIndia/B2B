@@ -1,3 +1,4 @@
+// src/Component/Navbar.jsx
 import React, { useEffect, useState } from "react";
 import {
   FaFacebookF,
@@ -42,7 +43,7 @@ const Navbar = () => {
 
   const { user, isLoaded, isSignedIn, authType, logout } = useAppAuth();
 
-  // 1. Load all countries once
+  // 1. Load all countries
   useEffect(() => {
     setLoadingCountries(true);
     fetch("https://countriesnow.space/api/v0.1/countries")
@@ -89,7 +90,7 @@ const Navbar = () => {
     }
   }, [loadingCountries, selectedCountry]);
 
-  // 3. Load states when country is selected
+  // 3. Load states when country changes
   useEffect(() => {
     if (!selectedCountry) return;
 
@@ -117,7 +118,7 @@ const Navbar = () => {
       .finally(() => setLoadingStates(false));
   }, [selectedCountry, detected.region]);
 
-  // 4. Load cities/districts when state is selected
+  // 4. Load cities when state changes
   useEffect(() => {
     if (!selectedCountry || !selectedState) return;
 
@@ -152,98 +153,99 @@ const Navbar = () => {
       <div className="bg-gray-900 text-gray-300 text-[10px] sm:text-xs">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex justify-between items-center">
           <div className="hidden md:flex items-center gap-4">
-            <FaFacebookF className="hover:text-white cursor-pointer transition-colors" />
-            <FaTwitter className="hover:text-white cursor-pointer transition-colors" />
-            <FaInstagram className="hover:text-white cursor-pointer transition-colors" />
-            <FaLinkedinIn className="hover:text-white cursor-pointer transition-colors" />
+            <FaFacebookF className="hover:text-blue-400 cursor-pointer transition-colors" />
+            <FaTwitter className="hover:text-blue-400 cursor-pointer transition-colors" />
+            <FaInstagram className="hover:text-pink-400 cursor-pointer transition-colors" />
+            <FaLinkedinIn className="hover:text-blue-400 cursor-pointer transition-colors" />
           </div>
           <div className="flex items-center justify-between w-full md:w-auto gap-4 md:gap-8">
             <span className="flex items-center gap-1.5">
-              <FaPhoneAlt className="text-emerald-400" /> +91 75052 66931
+              <FaPhoneAlt className="text-orange-400" /> +91 75052 66931
             </span>
             <span className="flex items-center gap-1.5">
-              <FaEnvelope className="text-amber-300" /> support@b2b.in
+              <FaEnvelope className="text-orange-400" /> support@b2b.in
             </span>
           </div>
         </div>
       </div>
 
       {/* Main Navigation */}
-      <nav className="max-w-7xl mx-auto px-4 lg:px-8 py-3 lg:py-4">
+      <nav className="max-w-7xl mx-auto px-4 lg:px-8 py-4">
         <div className="flex flex-col gap-4">
           {/* Logo + Search + Actions */}
           <div className="flex items-center justify-between gap-4">
             {/* Logo */}
-            <Link
-              to="/"
-              className="text-2xl sm:text-3xl font-black text-indigo-700 tracking-tighter cursor-pointer"
-            >
-              B2B<span className="text-gray-900"></span>
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-9 h-9 bg-orange-600 rounded-2xl flex items-center justify-center">
+                <span className="text-white font-bold text-2xl">B</span>
+              </div>
+              <span className="text-3xl font-black tracking-tighter text-gray-900">
+                B2B
+              </span>
             </Link>
 
             {/* Desktop Search */}
-            <div className="hidden lg:flex relative flex-1 max-w-lg mx-4">
+            <div className="hidden lg:flex relative flex-1 max-w-lg mx-6">
               <input
                 type="text"
-                placeholder="Search products (Medicine, Rice, Steel...)"
+                placeholder="Search products (HDPE, Gloves, Spices...)"
                 value={productType}
                 onChange={(e) => setProductType(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border-none rounded-full focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                className="w-full pl-12 pr-5 py-3 bg-gray-100 border border-gray-200 rounded-2xl focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all text-sm"
               />
-              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
 
-            {/* Actions - Login / User */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            {/* Actions */}
+            <div className="flex items-center gap-3">
               {!isSignedIn && (
                 <Link
                   to="/login"
-                  className="hidden sm:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors text-sm"
+                  className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition-all text-sm"
                 >
                   <FaUserCircle className="text-lg" />
                   Login
                 </Link>
               )}
 
-{isSignedIn && (
-  <div className="flex items-center gap-4">
-    <Link
-      to="/seller-dashboard"
-      className="hidden md:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all text-sm"
-    >
-      <FaStore className="text-lg" />
-      Seller Dashboard
-    </Link>
+              {isSignedIn && (
+                <div className="flex items-center gap-4">
+                  <Link
+                    to="/seller-dashboard"
+                    className="hidden md:flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-xl font-medium transition-all text-sm"
+                  >
+                    <FaStore className="text-lg" />
+                    Seller Dashboard
+                  </Link>
 
-    <span className="hidden sm:block text-sm font-medium text-gray-700">
-      Hi, {user?.firstName || "User"}
-    </span>
+                  <span className="hidden sm:block text-sm font-medium text-gray-700">
+                    Hi, {user?.firstName || "User"}
+                  </span>
 
-    {authType === "clerk" ? (
-      <UserButton
-        afterSignOutUrl="/"
-        appearance={{
-          elements: { avatarBox: "w-9 h-9" }
-        }}
-      />
-    ) : (
-      <button
-        type="button"
-        onClick={logout}
-        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-      >
-        Logout
-      </button>
-    )}
-  </div>
-)}
+                  {authType === "clerk" ? (
+                    <UserButton
+                      afterSignOutUrl="/"
+                      appearance={{
+                        elements: { avatarBox: "w-9 h-9" }
+                      }}
+                    />
+                  ) : (
+                    <button
+                      onClick={logout}
+                      className="rounded-xl border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Mobile Menu Button */}
               <button
-                className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="lg:hidden p-3 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
-                {isMenuOpen ? <FaTimes size={22} /> : <FaBars size={22} />}
+                {isMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
               </button>
             </div>
           </div>
@@ -252,34 +254,34 @@ const Navbar = () => {
           <div
             className={`${
               isMenuOpen
-                ? "flex flex-col gap-5 animate-in slide-in-from-top-5 fade-in duration-300"
+                ? "flex flex-col gap-4 animate-in slide-in-from-top-5"
                 : "hidden"
-            } lg:flex lg:flex-row lg:items-center lg:gap-4 bg-white/95 lg:bg-transparent backdrop-blur-md lg:backdrop-blur-none p-5 lg:p-0 border-t lg:border-none shadow-xl lg:shadow-none rounded-b-2xl lg:rounded-none`}
+            } lg:flex lg:flex-row lg:items-center lg:gap-4 bg-white lg:bg-transparent p-5 lg:p-0 border-t lg:border-none lg:shadow-none rounded-2xl lg:rounded-none`}
           >
             {/* Mobile Search */}
-            <div className="relative lg:hidden">
+            <div className="relative lg:hidden mb-2">
               <input
                 type="text"
                 placeholder="What are you looking for?"
                 value={productType}
                 onChange={(e) => setProductType(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                className="w-full pl-12 pr-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:border-orange-500"
               />
-              <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
 
             {/* Location Selects */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
               {/* Country */}
-              <div className="relative group">
+              <div className="relative">
                 {detectingLocation && (
-                  <FaSpinner className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-indigo-500" />
+                  <FaSpinner className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-orange-500" />
                 )}
                 <select
                   value={selectedCountry}
                   onChange={(e) => setSelectedCountry(e.target.value)}
                   disabled={loadingCountries || detectingLocation}
-                  className="w-full pl-3 pr-10 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-60"
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-gray-300 rounded-2xl text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all appearance-none"
                 >
                   <option value="">Select Country</option>
                   {countries.map((c) => (
@@ -288,19 +290,19 @@ const Navbar = () => {
                     </option>
                   ))}
                 </select>
-                <FaGlobe className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-indigo-500" />
+                <FaGlobe className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
 
               {/* State */}
-              <div className="relative group">
+              <div className="relative">
                 {loadingStates && (
-                  <FaSpinner className="absolute right-8 top-1/2 -translate-y-1/2 animate-spin text-indigo-500" />
+                  <FaSpinner className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-orange-500" />
                 )}
                 <select
                   value={selectedState}
                   onChange={(e) => setSelectedState(e.target.value)}
                   disabled={!selectedCountry || loadingStates}
-                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none disabled:bg-gray-50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-60"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-2xl text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all appearance-none disabled:bg-gray-50"
                 >
                   <option value="">Select State</option>
                   {states.map((s) => (
@@ -312,15 +314,15 @@ const Navbar = () => {
               </div>
 
               {/* District / City */}
-              <div className="relative group">
+              <div className="relative">
                 {loadingDistricts && (
-                  <FaSpinner className="absolute right-8 top-1/2 -translate-y-1/2 animate-spin text-indigo-500" />
+                  <FaSpinner className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-orange-500" />
                 )}
                 <select
                   value={selectedDistrict}
                   onChange={(e) => setSelectedDistrict(e.target.value)}
                   disabled={!selectedState || loadingDistricts}
-                  className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-sm appearance-none disabled:bg-gray-50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-60"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-2xl text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all appearance-none disabled:bg-gray-50"
                 >
                   <option value="">Select City</option>
                   {districts.map((d) => (
@@ -333,16 +335,19 @@ const Navbar = () => {
             </div>
 
             {/* Search Button */}
-            <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+            <button className="bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white px-8 py-3 rounded-2xl font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 whitespace-nowrap">
               <FaSearch className="hidden lg:inline" />
               <span>Search</span>
             </button>
 
-            {/* Mobile Login (when signed out) */}
+            {/* Mobile Login */}
             {!isSignedIn && (
-              <button className="sm:hidden mt-2 border-2 border-indigo-600 text-indigo-600 py-2.5 rounded-lg font-bold w-full">
-                <Link to="/login">Login / Register</Link>
-              </button>
+              <Link
+                to="/login"
+                className="sm:hidden mt-2 border-2 border-orange-600 text-orange-600 py-3 rounded-2xl font-bold w-full text-center"
+              >
+                Login / Register
+              </Link>
             )}
           </div>
         </div>

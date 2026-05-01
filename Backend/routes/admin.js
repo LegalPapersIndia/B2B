@@ -10,6 +10,7 @@ const CategoryRequest = require('../models/CategoryRequest');
 const { generateLocalSellerId, hashPassword } = require('../utils/sellerAuth');
 const { uploadBufferToCloudinary } = require('../utils/cloudinary');
 const { buildSellerLookupFromStoredOwner } = require('../utils/sellerIdentity');
+const { allowedCategories } = require('../utils/categoriesConfig');
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -21,13 +22,6 @@ const upload = multer({
     return cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
   },
 });
-
-const allowedCategories = [
-  'medicine', 'cosmetics', 'personal-care', 'food', 'beverages',
-  'confectionery', 'daily-use', 'home-kitchen', 'construction',
-  'machinery', 'electrical', 'apparel', 'textiles', 'electronics',
-  'automotive', 'agriculture', 'packaging', 'pet-supplies',
-];
 
 function normalizeSubcategories(input) {
   if (!input) return [];
@@ -102,8 +96,9 @@ async function buildCategoryPayload(req) {
       })()
     : [];
 
-  if (typeof req.body.name === 'string') {
-    payload.name = req.body.name.trim().toLowerCase();
+if (typeof req.body.name === 'string') {
+    // Keep original case for display, store slug separately via pre-save hook in model
+    payload.name = req.body.name.trim();
   }
 
   if (typeof req.body.description === 'string') {
@@ -158,7 +153,8 @@ async function getEnrichedProduct(product) {
 }
 
 async function ensureCategoryAndSubcategory(categoryName, subcategoryName, options = {}) {
-  const normalizedCategory = String(categoryName || '').trim().toLowerCase();
+  // Keep original case for display
+  const normalizedCategory = String(categoryName || '').trim();
   const normalizedSubcategory = String(subcategoryName || '').trim().toLowerCase();
   const categoryImage = String(options.categoryImage || '').trim();
   const subcategoryReferenceImage = String(options.subcategoryReferenceImage || '').trim();
@@ -172,7 +168,9 @@ async function ensureCategoryAndSubcategory(categoryName, subcategoryName, optio
     throw new Error('Final subcategory is required');
   }
 
-  let categoryDoc = await Category.findOne({ name: normalizedCategory });
+  // Search by slug instead of name for case-insensitive lookup
+  const slug = normalizedCategory.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+  let categoryDoc = await Category.findOne({ $or: [{ name: normalizedCategory }, { slug: slug }] });
 
   if (!categoryDoc) {
     categoryDoc = await Category.create({
@@ -231,12 +229,15 @@ router.get('/categories', async (req, res) => {
       ...dbCategories.map((cat) => cat.name),
     ])].sort();
 
-    const categories = allNames.map((name) => {
+const categories = allNames.map((name) => {
       const dbCat = dbMap.get(name);
       const normalizedSubcategories = normalizeCategorySubcategories(dbCat?.subcategories);
+      // Capitalize the name for proper display
+      const displayName = name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       return {
         _id: dbCat?._id,
-        name,
+        name: displayName,
+        slug: dbCat?.slug || name,
         isDefault: allowedCategories.includes(name),
         description: dbCat?.description || '',
         image: dbCat?.image || '',
@@ -321,8 +322,29 @@ router.delete('/categories/:id', async (req, res) => {
 
 router.get('/users', async (req, res) => {
   try {
-    const users = await Seller.find()
-      .select('clerkId name email phone company website address city state country gstNumber avatar profileCompletedAt createdAt updatedAt')
+    const { category } = req.query;
+    let query = {};
+
+    // If category is provided, filter sellers who have products in that category
+    if (category) {
+      const normalizedCategory = String(category).trim().toLowerCase();
+      
+      // Find sellers who have products in this category OR have category field set
+      const sellersWithProducts = await Product.find({ category: normalizedCategory }).distinct('clerkId');
+      const sellersWithCategory = await Seller.find({ category: normalizedCategory }).distinct('clerkId');
+      
+      const clerkIds = [...new Set([...sellersWithProducts, ...sellersWithCategory])];
+      
+      if (clerkIds.length > 0) {
+        query = { clerkId: { $in: clerkIds } };
+      } else {
+        // No sellers found for this category
+        return res.json({ success: true, users: [] });
+      }
+    }
+
+    const users = await Seller.find(query)
+      .select('clerkId name email phone company website address city state country gstNumber avatar profileCompletedAt createdAt updatedAt category')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, users });
@@ -814,18 +836,19 @@ router.put('/category-requests/:id/approve', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Request already processed' });
     }
 
-    if (request.type === 'category') {
-      // Create new category
+if (request.type === 'category') {
+      // Create new category with proper case
       const category = new Category({
-        name: request.name,
+        name: request.name, // Keep original case from request
         description: request.description,
         image: request.image,
         subcategories: [],
       });
       await category.save();
     } else if (request.type === 'subcategory') {
-      // Add to existing category
-      const category = await Category.findOne({ name: request.category });
+      // Add to existing category - search by slug for case-insensitive lookup
+      const slug = (request.category || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const category = await Category.findOne({ $or: [{ name: request.category }, { slug: slug }] });
       if (!category) {
         return res.status(404).json({ success: false, message: 'Parent category not found' });
       }

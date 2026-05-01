@@ -1,4 +1,4 @@
-// src/Component/Testimonials.jsx
+// src/components/Testimonials.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FaStar, FaQuoteLeft } from 'react-icons/fa';
@@ -54,7 +54,7 @@ const Testimonials = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <span className="inline-block px-4 py-1.5 bg-emerald-100 text-emerald-700 text-sm font-semibold rounded-full mb-4">
+            <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-700 text-sm font-semibold rounded-full mb-4">
               TESTIMONIALS
             </span>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight">
@@ -66,7 +66,7 @@ const Testimonials = () => {
           </motion.div>
         </div>
 
-        {/* Swiper - Only Autoplay, No Navigation, No Pagination */}
+        {/* Swiper Testimonials */}
         <Swiper
           modules={[Autoplay]}
           spaceBetween={30}
@@ -92,7 +92,7 @@ const Testimonials = () => {
                 className="bg-white border border-gray-100 rounded-3xl p-8 lg:p-10 shadow-sm hover:shadow-2xl transition-all duration-500 h-full flex flex-col"
               >
                 {/* Quote Icon */}
-                <div className="text-emerald-500 mb-6">
+                <div className="text-orange-500 mb-6">
                   <FaQuoteLeft size={42} />
                 </div>
 
@@ -110,7 +110,7 @@ const Testimonials = () => {
 
                 {/* User Info */}
                 <div className="flex items-center gap-4 pt-6 border-t border-gray-100 mt-auto">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-2xl font-semibold shadow-md flex-shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-orange-600 flex items-center justify-center text-white text-2xl font-semibold shadow-md flex-shrink-0">
                     {testimonial.name.charAt(0)}
                   </div>
                   <div>
@@ -126,7 +126,7 @@ const Testimonials = () => {
         {/* Trust Line */}
         <div className="text-center mt-14">
           <p className="text-lg text-gray-600">
-            Join over <span className="font-bold text-emerald-700">10,000+</span> businesses 
+            Join over <span className="font-bold text-orange-700">10,000+</span> businesses 
             transforming their trade experience
           </p>
         </div>
