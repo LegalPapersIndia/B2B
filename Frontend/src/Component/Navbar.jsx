@@ -177,14 +177,12 @@ const Navbar = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
               <div className="w-9 h-9 bg-orange-600 rounded-2xl flex items-center justify-center">
-                <span className="text-white font-bold text-2xl">B</span>
+                <span className="text-white font-bold text-2xl">L</span>
               </div>
               <span className="text-3xl font-black tracking-tighter text-gray-900">
-                B2B
+               LPI-B2B
               </span>
             </Link>
-
-            {/* Desktop Search */}
             <div className="hidden lg:flex relative flex-1 max-w-lg mx-6">
               <input
                 type="text"
