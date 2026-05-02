@@ -1,7 +1,8 @@
 // src/Pages/SubcategoryPage.jsx
 import React, { useEffect, useState, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Building2, Star, Phone, Mail, Globe } from "lucide-react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowLeft, Building2, Star, Phone, Mail, Globe, MapPin, Briefcase, ExternalLink } from "lucide-react";
 import axios from "axios";
 import { useAppAuth } from "../context/AuthContext";
 
@@ -20,9 +21,10 @@ function SubcategoryPage() {
   const { slug, subslug } = useParams();
   const { isLoaded, user, getToken, isProfileComplete } = useAppAuth();
 
-  const [loading, setLoading] = useState(true);
+const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [revealedContact, setRevealedContact] = useState(null);
+  const [expandedDesc, setExpandedDesc] = useState(null);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -159,33 +161,80 @@ function SubcategoryPage() {
                     />
                   </div>
 
-                  <div className="p-6">
+<div className="p-6">
                     <h3 className="font-semibold text-lg line-clamp-2 text-gray-900 mb-2">
                       {p.name}
                     </h3>
 
-                    <p className="text-2xl font-bold text-orange-600">
-                      ₹{p.price?.toLocaleString("en-IN")}
-                    </p>
-
-                    <p className="text-sm text-gray-500 mt-1">
-                      MOQ: <span className="font-medium">{p.moq || "N/A"}</span>
-                    </p>
-
-                    {seller.company && (
-                      <div className="mt-4 flex items-center gap-3 text-sm text-gray-600">
-                        {seller.avatar ? (
-                          <img
-                            src={seller.avatar}
-                            alt={seller.company}
-                            className="w-8 h-8 rounded-lg object-cover border border-gray-200"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
-                            <Building2 className="w-4 h-4 text-gray-400" />
-                          </div>
+                    {/* Product Description with Read More */}
+                    {p.description && (
+                      <div className="mb-3">
+                        <p className={`text-sm text-gray-600 ${expandedDesc === p._id ? '' : 'line-clamp-2'}`}>
+                          {p.description}
+                        </p>
+                        {p.description.length > 100 && (
+                          <button
+                            onClick={() => setExpandedDesc(expandedDesc === p._id ? null : p._id)}
+                            className="text-xs text-orange-600 font-medium hover:underline mt-1"
+                          >
+                            {expandedDesc === p._id ? 'Show less' : 'Read more'}
+                          </button>
                         )}
-                        <span>by <span className="font-medium text-gray-800">{seller.company}</span></span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-2xl font-bold text-orange-600">
+                        ₹{p.price?.toLocaleString("en-IN")}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        MOQ: <span className="font-medium">{p.moq || "N/A"}</span>
+                      </p>
+                    </div>
+
+                    {seller && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-3">
+                          {seller.avatar ? (
+                            <img
+                              src={seller.avatar}
+                              alt={seller.company}
+                              className="w-12 h-12 rounded-xl object-cover border border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center">
+                              <Building2 className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">
+                              {seller.company}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-1">
+                              {seller.businessType && (
+                                <span className="flex items-center gap-1">
+                                  <Briefcase className="w-3 h-3" />
+                                  {seller.businessType}
+                                </span>
+                              )}
+                              {seller.city && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {seller.city}{seller.state ? `, ${seller.state}` : ''}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {seller._id && (
+                            <Link
+                              to={`/company/${seller._id}`}
+                              className="flex items-center gap-1 text-xs text-orange-600 font-medium hover:underline"
+                            >
+                              View Profile
+                              <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     )}
 

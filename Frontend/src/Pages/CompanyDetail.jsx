@@ -1,8 +1,8 @@
 // src/Pages/CompanyDetail.jsx
-import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Boxes, Building2, Globe, Mail, MapPin, Phone, Tag } from 'lucide-react';
+import { ArrowLeft, Boxes, Building2, Globe, Mail, MapPin, Phone, Tag, Share2, Clock, CheckCircle, Calendar, MessageSquare, Copy, ArrowUpRight, Star, Briefcase } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -18,10 +18,32 @@ const toTitle = (value = '') =>
 
 export default function CompanyDetail() {
   const { id } = useParams();
-  const [company, setCompany] = useState(null);
+const [company, setCompany] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showEnquiryForm, setShowEnquiryForm] = useState(false);
+  const [enquiryMessage, setEnquiryMessage] = useState('');
+  const [enquirySent, setEnquirySent] = useState(false);
+  const location = useLocation();
+
+  // Share company function
+  const shareCompany = async () => {
+    const url = window.location.href;
+    const title = company?.company || 'Business Profile';
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+      } catch (err) {
+        // User cancelled or error
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    }
+  };
 
   useEffect(() => {
     const fetchCompanyDetails = async () => {
@@ -84,13 +106,13 @@ export default function CompanyDetail() {
           <div className="bg-gradient-to-r from-blue-700 to-orange-600 px-8 py-12 text-white">
             <p className="text-sm uppercase tracking-widest text-blue-100">BUSINESS PROFILE</p>
             
-            {company.isPremium && (
+{company.isPremium && (
               <div className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white px-5 py-2 text-sm font-semibold mt-4">
                 <Star className="w-4 h-4 fill-current" /> PREMIUM SELLER
               </div>
             )}
 
-            <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-6">
+<div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-6">
               {company.avatar ? (
                 <img
                   src={company.avatar}
@@ -102,11 +124,51 @@ export default function CompanyDetail() {
                   <Building2 className="w-12 h-12 text-white" />
                 </div>
               )}
-              <div>
+              <div className="flex-1">
                 <h1 className="text-5xl font-bold tracking-tight">{company.company}</h1>
                 {company.name && (
                   <p className="mt-2 text-xl text-white/90">by {company.name}</p>
                 )}
+                
+                {/* Business Info Badges */}
+                <div className="flex flex-wrap gap-3 mt-4">
+                  {company.businessType && (
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 rounded-full text-sm">
+                      <Briefcase className="w-4 h-4" />
+                      {company.businessType}
+                    </span>
+                  )}
+                  {company.city && (
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 rounded-full text-sm">
+                      <MapPin className="w-4 h-4" />
+                      {company.city}{company.state ? `, ${company.state}` : ''}
+                    </span>
+                  )}
+                  {company.isPremium && (
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/90 rounded-full text-sm font-medium">
+                      <Star className="w-4 h-4" />
+                      Premium Seller
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Share Button */}
+              <div className="flex gap-2">
+                <button
+                  onClick={shareCompany}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl transition-all text-white text-sm font-medium"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </button>
+                <button
+                  onClick={() => setShowEnquiryForm(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white text-orange-700 hover:bg-orange-50 rounded-xl transition-all text-sm font-semibold"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Enquiry
+                </button>
               </div>
             </div>
           </div>
@@ -223,8 +285,6 @@ export default function CompanyDetail() {
             </div>
           </div>
         </section>
-
-        {/* Products Section */}
         <section className="mt-16">
           <div className="flex items-end justify-between mb-8">
             <div>
@@ -283,7 +343,76 @@ export default function CompanyDetail() {
               ))}
             </div>
           )}
-        </section>
+</section>
+
+        {/* Enquiry Form Modal */}
+        {showEnquiryForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-y-auto">
+              {enquirySent ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-2">Enquiry Sent!</h3>
+                  <p className="text-gray-600 mb-6">The seller will get back to you soon.</p>
+                  <button
+                    onClick={() => {
+                      setShowEnquiryForm(false);
+                      setEnquirySent(false);
+                      setEnquiryMessage('');
+                    }}
+                    className="px-6 py-3 bg-orange-600 text-white rounded-xl font-medium"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900">Send Enquiry</h3>
+                    <button
+                      onClick={() => setShowEnquiryForm(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl mb-6">
+                    {company.avatar ? (
+                      <img src={company.avatar} alt={company.company} className="w-12 h-12 rounded-xl object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gray-200 flex items-center justify-center">
+                        <Building2 className="w-6 h-6 text-gray-400" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-gray-900">{company.company}</p>
+                      <p className="text-sm text-gray-500">Send your requirements</p>
+                    </div>
+                  </div>
+                  <textarea
+                    value={enquiryMessage}
+                    onChange={(e) => setEnquiryMessage(e.target.value)}
+                    placeholder="Describe your requirements, quantity needed, delivery location, etc."
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none min-h-[120px] mb-4"
+                  />
+                  <button
+                    onClick={() => {
+                      if (enquiryMessage.trim()) {
+                        setEnquirySent(true);
+                      }
+                    }}
+                    disabled={!enquiryMessage.trim()}
+                    className="w-full py-4 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white rounded-xl font-medium transition-all"
+                  >
+                    Send Enquiry
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

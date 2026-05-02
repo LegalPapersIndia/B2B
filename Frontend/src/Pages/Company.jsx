@@ -1,8 +1,8 @@
 // src/Pages/Companies.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Mail, Phone, Star, ArrowRight, Boxes, MapPin, Building2 } from 'lucide-react';
+import { Mail, Phone, Star, ArrowRight, Boxes, MapPin, Building2, Filter, ChevronDown, CheckCircle, Briefcase, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -13,6 +13,8 @@ export default function Companies() {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const fetchAllCompanies = async () => {
@@ -30,13 +32,29 @@ export default function Companies() {
     fetchAllCompanies();
   }, []);
 
+  // Get unique locations for filter
+  const locations = useMemo(() => {
+    const locs = new Set();
+    companies.forEach(c => {
+      if (c.city) locs.add(c.city);
+      if (c.location) locs.add(c.location);
+    });
+    return Array.from(locs).sort();
+  }, [companies]);
+
   const filteredCompanies = companies.filter((company) => {
     const query = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = 
       (company.company || '').toLowerCase().includes(query) ||
       (company.name || '').toLowerCase().includes(query) ||
-      (company.location || '').toLowerCase().includes(query)
-    );
+      (company.location || '').toLowerCase().includes(query) ||
+      (company.city || '').toLowerCase().includes(query);
+    
+    const matchesLocation = !locationFilter || 
+      (company.city || '').toLowerCase() === locationFilter.toLowerCase() ||
+      (company.location || '').toLowerCase() === locationFilter.toLowerCase();
+    
+    return matchesSearch && matchesLocation;
   });
 
   if (loading) {
@@ -64,15 +82,65 @@ export default function Companies() {
           </p>
         </div>
 
-        {/* Search Bar */}
+{/* Search Bar and Filters */}
         <div className="max-w-2xl mx-auto mb-12">
-          <input
-            type="text"
-            placeholder="Search by company, owner, or city..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-6 py-4 rounded-3xl border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none text-lg shadow-sm"
-          />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Search by company, owner, or city..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-6 py-4 rounded-3xl border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none text-lg shadow-sm"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-5 py-4 rounded-3xl border transition-all ${
+                showFilters || locationFilter
+                  ? 'bg-orange-600 border-orange-600 text-white'
+                  : 'bg-white border-gray-200 text-gray-700 hover:border-orange-400'
+              }`}
+            >
+              <Filter className="w-5 h-5" />
+              Filters
+              {locationFilter && (
+                <span className="w-2 h-2 bg-white rounded-full"></span>
+              )}
+            </button>
+          </div>
+          
+          {/* Filter Panel */}
+          {showFilters && (
+            <div className="mt-4 p-5 bg-white border border-gray-200 rounded-3xl shadow-lg">
+              <div className="flex flex-wrap gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <select
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="px-4 py-2.5 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-300 outline-none"
+                  >
+                    <option value="">All Locations</option>
+                    {locations.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+                {(locationFilter || searchTerm) && (
+                  <button
+                    onClick={() => {
+                      setLocationFilter('');
+                      setSearchTerm('');
+                    }}
+                    className="flex items-center gap-1 text-sm text-orange-600 hover:underline self-end pb-2.5"
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Companies Grid */}
@@ -123,7 +191,7 @@ export default function Companies() {
                 )}
 
                 {/* Details */}
-                <div className="space-y-3 text-sm mb-8 text-gray-600">
+<div className="space-y-3 text-sm mb-8 text-gray-600">
                   {company.productCount !== undefined && (
                     <div className="flex items-center gap-3">
                       <Boxes className="w-4 h-4" />
@@ -131,7 +199,21 @@ export default function Companies() {
                     </div>
                   )}
 
-                  {company.location && (
+                  {company.businessType && (
+                    <div className="flex items-center gap-3">
+                      <Briefcase className="w-4 h-4" />
+                      <span>{company.businessType}</span>
+                    </div>
+                  )}
+
+                  {company.city && (
+                    <div className="flex items-center gap-3">
+                      <MapPin className="w-4 h-4" />
+                      <span>{company.city}{company.state ? `, ${company.state}` : ''}</span>
+                    </div>
+                  )}
+
+                  {company.location && !company.city && (
                     <div className="flex items-center gap-3">
                       <MapPin className="w-4 h-4" />
                       <span>{company.location}</span>
@@ -153,13 +235,38 @@ export default function Companies() {
                   )}
                 </div>
 
-                {/* Rating & Verified */}
+                {/* Categories Tags */}
+                {company.categories?.length > 0 && (
+                  <div className="mb-6">
+                    <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Deals In</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {company.categories.slice(0, 4).map((cat, i) => (
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs rounded-lg"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                      {company.categories.length > 4 && (
+                        <span className="px-2.5 py-1 bg-orange-50 text-orange-700 text-xs rounded-lg">
+                          +{company.categories.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+{/* Rating & Verified */}
                 <div className="flex justify-between items-center text-xs text-gray-500 mb-8">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 text-amber-500 fill-current" />
                     <span>4.8</span>
                   </div>
-                  <div className="text-emerald-600 font-medium">Verified Associate</div>
+                  <div className="flex items-center gap-1.5 text-emerald-600 font-medium">
+                    <CheckCircle className="w-4 h-4" />
+                    Verified Associate
+                  </div>
                 </div>
 
                 {/* Action Buttons */}

@@ -35,6 +35,7 @@ function normalizeLocalUser(user) {
       phone: user.phone || '',
     },
     rawProfile: user,
+    isProfileComplete: user.isProfileComplete === true,
   };
 }
 
@@ -151,15 +152,25 @@ export function AuthProvider({ children }) {
   };
 
   const authType = localToken && localUser ? 'local' : clerkSignedIn ? 'clerk' : null;
-  const user = authType === 'local' ? normalizeLocalUser(localUser) : clerkUser;
+  const normalizedUser = authType === 'local' ? normalizeLocalUser(localUser) : clerkUser;
+  const user = normalizedUser;
   const isSignedIn = Boolean(authType);
   const isLoaded = clerkLoaded && localLoaded;
-  const isProfileComplete = backendUser?.isProfileComplete === true ||
-    (authType !== 'local' && (
-      user?.unsafeMetadata?.profileCompleted === true ||
-      (user?.unsafeMetadata?.businessName &&
-        user?.unsafeMetadata?.mobile &&
-        user?.unsafeMetadata?.address)
+
+  // Check profile completion for all auth types:
+  // 1. For local users: check both localUser and backendUser isProfileComplete
+  // 2. For clerk users: check backendUser isProfileComplete, then fallback to Clerk unsafeMetadata
+  const isProfileComplete =
+    // Check backend user first (works for both local and clerk)
+    backendUser?.isProfileComplete === true ||
+    // For local auth, also check local user's profile completion
+    (authType === 'local' && localUser?.isProfileComplete === true) ||
+    // For clerk auth, check Clerk metadata as fallback
+    (authType !== 'local' && clerkSignedIn && (
+      normalizedUser?.unsafeMetadata?.profileCompleted === true ||
+      (normalizedUser?.unsafeMetadata?.businessName &&
+        normalizedUser?.unsafeMetadata?.mobile &&
+        normalizedUser?.unsafeMetadata?.address)
     ));
 
   return (
